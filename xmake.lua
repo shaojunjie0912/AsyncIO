@@ -9,5 +9,5 @@ add_rules("plugin.compile_commands.autoupdate")
 set_warnings("allextra")
 set_defaultmode("debug")
 
--- includes("CuteCoro")
+includes("CuteCoro")
 includes("tests")
