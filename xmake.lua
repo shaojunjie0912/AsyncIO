@@ -10,5 +10,5 @@ set_warnings("allextra")
 set_defaultmode("debug")
 
 -- includes("CuteCoro")
--- includes("tests")
+includes("tests")
 includes("misc")

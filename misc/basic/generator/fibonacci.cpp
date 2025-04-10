@@ -18,7 +18,7 @@ struct Generator {
     handle_type h_;
 
     struct promise_type {
-        T value_;
+        T value_;  // 存储结果
         std::exception_ptr exception_;
 
         Generator get_return_object() { return Generator{handle_type::from_promise(*this)}; }
