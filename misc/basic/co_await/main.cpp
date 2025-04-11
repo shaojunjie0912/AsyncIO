@@ -3,6 +3,12 @@
 
 using namespace std;
 
+// NOTE: C++ 聚合初始化, 无须显示构造函数
+// - 没有用户提供的构造函数(普通构造/拷贝构造/移动构造)
+// - 没有私有或受保护的非静态数据成员
+// - 没有基类
+// - 没有虚函数
+
 // 协程的返回类型
 struct CoRet {
     struct promise_type;
@@ -19,10 +25,8 @@ struct CoRet {
         void unhandled_exception() {}
 
         // 协程返回值 -> CoRet 中包含一个 coroutine_handle 协程句柄
-        CoRet get_return_object() {
-            // 构造了一个 CoRet 对象
-            return {coroutine_handle<promise_type>::from_promise(*this)};
-        }
+        // 聚合初始化
+        CoRet get_return_object() { return {coroutine_handle<promise_type>::from_promise(*this)}; }
     };
 };
 

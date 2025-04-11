@@ -12,18 +12,11 @@ struct CoRet {
         int out_;  // 用于保存 co_yield 的输出值(就是用户猜大猜小)
         int res_;  // 用于保存 co_return 的输出值(就是 result random 结果随机数)
 
+        CoRet get_return_object() { return {coroutine_handle<promise_type>::from_promise(*this)}; }
+
         suspend_never initial_suspend() { return {}; }
 
-        // 返回值决定了协程是否在完成时挂起,
-        // NOTE: 如果不 suspend_always 那么协程资源就会被销毁
-        // 再次访问会导致未定义行为
-        // 返回 suspend_always 协程完成后会挂起, 保持其状态, 直到显式调用 coroutine_handle::destroy() 销毁
-        // 返回 suspend_never 协程完成后立即自动销毁, 释放所有资源
-        suspend_always final_suspend() noexcept { return {}; }
-
         void unhandled_exception() {}
-
-        CoRet get_return_object() { return {coroutine_handle<promise_type>::from_promise(*this)}; }
 
         // 输入: co_yield 后面那个表达式
         // 输出: 将要 co_await 的对象
@@ -37,6 +30,13 @@ struct CoRet {
         // 协程结束时需要返回值 co_return val; 对应 return_value
         // 如果不返回值, 则 co_return; 对应 return_void
         void return_value(int r) { res_ = r; }
+
+        // 返回值决定了协程是否在完成时挂起,
+        // NOTE: 如果不 suspend_always 那么协程资源就会被销毁
+        // 再次访问会导致未定义行为
+        // 返回 suspend_always 协程完成后会挂起, 保持其状态, 直到显式调用 coroutine_handle::destroy() 销毁
+        // 返回 suspend_never 协程完成后立即自动销毁, 释放所有资源
+        suspend_always final_suspend() noexcept { return {}; }
     };
 };
 
@@ -82,9 +82,7 @@ int main() {
     // resume from co_await
     ret.h_.resume();  // 从 co_await 继续执行协程, 经过 co_yield -> yield_value 后执行权还给 main
     cout << "[main]: answer is "
-         << ((ret.h_.promise().out_ == 1) ? "larger"
-                                          : ((ret.h_.promise().out_ == 0) ? "the same" : "smaller"))
-         << endl;
+         << ((ret.h_.promise().out_ == 1) ? "larger" : ((ret.h_.promise().out_ == 0) ? "the same" : "smaller")) << endl;
     // resume from co_yield
     ret.h_.resume();
     if (ret.h_.done()) {

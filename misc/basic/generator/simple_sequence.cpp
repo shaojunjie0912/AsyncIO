@@ -9,7 +9,7 @@ struct Generator {
         std::suspend_never initial_suspend() { return {}; };
 
         // 执行结束后不需要挂起
-        std::suspend_never final_suspend() noexcept { return {}; }
+        std::suspend_always final_suspend() noexcept { return {}; }
 
         // 传值的同时要挂起，值存入 value 当中
         // 先通过 promise.await_transform(expr) 对 expr 转换, 得到 awaitable
@@ -25,15 +25,15 @@ struct Generator {
         void return_void() {}
     };
 
-    std::coroutine_handle<promise_type> handle;
+    std::coroutine_handle<promise_type> handle_;
 
     int next() {
-        handle.resume();
-        return handle.promise().value_;
+        handle_.resume();
+        return handle_.promise().value_;
     }
 };
 
-Generator sequence() {
+Generator Sequence() {
     int i = 0;
     while (true) {
         co_await i++;
@@ -41,7 +41,7 @@ Generator sequence() {
 }
 
 int main() {
-    auto gen = sequence();
+    auto gen = Sequence();
     for (int i = 0; i < 5; ++i) {
         std::cout << gen.next() << std::endl;
     }
