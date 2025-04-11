@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 // TODO: 只知道必须 move-only 表示协程句柄与一个协程绑定, 但是还没试过拷贝
@@ -31,14 +32,16 @@ public:
 
     Generator& operator=(Generator const&) = delete;
 
-    Generator(Generator&& other) noexcept : h_(std::exchange(other.h_, {})) { std::cout << "移动构造\n"; }
+    Generator(Generator&& other) noexcept : h_(std::exchange(other.h_, {})) {
+        // std::cout << "移动构造\n";
+    }
 
     Generator& operator=(Generator&& other) noexcept {
         if (this != &other) {
             Destory();
             h_ = std::exchange(other.h_, {});
         }
-        std::cout << "移动赋值\n";
+        // std::cout << "移动赋值\n";
         return *this;
     }
 
@@ -112,6 +115,24 @@ public:
         }
     }
 
+    template <typename CoroFunc>
+    std::invoke_result<CoroFunc, T> FlatMap(CoroFunc fn) {
+        auto upstream = std::move(*this);
+        while (upstream.HasNext()) {
+            auto generator = fn(upstream.Next());  // 值映射成新的 Generator
+            while (generator.HasNext()) {          // 将新的 Generator 展开
+                co_yield generator.Next();
+            }
+        }
+    }
+
+    template <typename F>
+    void ForEach(F f) {
+        while (HasNext()) {
+            f(Next());
+        }
+    }
+
 public:
     void Print() {
         while (true) {
@@ -161,6 +182,24 @@ int main() {
     auto gen2 = Fibonacci(10);
     gen2.Print();
 
-    auto gen2_str = Fibonacci(5).Map<std::string>([](int i) { return std::to_string(i); });
+    auto gen2_str = Fibonacci(5).Map([](int i) { return std::to_string(i); });
     gen2_str.Print();
+
+    auto gen3_str = Generator<int>::Gen(1, 2, 3, 4).Map([](int i) { return std::to_string(i); });
+    gen3_str.Print();
+
+    // Generator<int>::Gen(1, 2, 3, 4)
+    //     // 返回值类型必须显式写出来，表明这个函数是个协程
+    //     .FlatMap([](auto i) -> Generator<int> {
+    //         for (int j = 0; j < i; ++j) {
+    //             // 在协程当中，我们可以使用 co_yield 传值出来
+    //             co_yield j;
+    //         }
+    //     })
+    //     .ForEach([](auto i) {
+    //         if (i == 0) {
+    //             std::cout << std::endl;
+    //         }
+    //         std::cout << "* ";
+    //     });
 }
