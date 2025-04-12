@@ -42,9 +42,9 @@ void TaskPromise<ResultType>::unhandled_exception() {
 template <typename ResultType>
 void TaskPromise<ResultType>::return_value(ResultType value) {
     std::unique_lock lk{mtx_};
-    result_ = Result{std::move(value)};
-    cv_.notify_all();
-    NotifyCallbacks();
+    result_ = Result{std::move(value)};  // 存储结果值 value 到 Result 对象中(NOTE: 标志当前任务完成)
+    cv_.notify_all();                    // 通知所有正在等待的线程(NOTE: 当前只是单线程, 等多线程再看)
+    NotifyCallbacks();                   // 执行所有回调函数(即之前注册的恢复 simple_task 的回调)
 }
 
 template <typename ResultType>
@@ -63,12 +63,12 @@ ResultType TaskPromise<ResultType>::GetResult() {
 template <typename ResultType>
 void TaskPromise<ResultType>::OnCompleted(ResultCallback&& func) {
     std::unique_lock lk{mtx_};
-    if (result_.has_value()) {
+    if (result_.has_value()) {  // 如果 result_ 有值, 则解锁后调用 func
         auto& res{*result_};
         lk.unlock();
         func(res);
-    } else {
-        callbacks_.push_back(func);
+    } else {  // 否则注册回调函数([](){恢复 simple_task} 的回调就是在这里加入 simple_task2 的 TaskPromise 中的)
+        callbacks_.push_back(std::move(func));
     }
 }
 
@@ -111,12 +111,6 @@ TaskAwaiter<OtherResultType> TaskPromise<void>::await_transform(Task<OtherResult
     return TaskAwaiter<OtherResultType>{std::move(task)};
 }
 
-// TODO: 为什么模板类型推断失败
-// template <typename _ResultType>
-// auto TaskPromise<void>::await_transform(Task<_ResultType>&& task) {
-//     return TaskAwaiter{std::move(task)};
-// }
-
 void TaskPromise<void>::GetResult() {
     std::unique_lock lk{mtx_};
     cv_.wait(lk, [this] { return result_.has_value(); });
@@ -130,7 +124,7 @@ void TaskPromise<void>::OnCompleted(ResultCallback&& func) {
         lk.unlock();
         func(res);
     } else {
-        callbacks_.push_back(func);
+        callbacks_.push_back(std::move(func));
     }
 }
 

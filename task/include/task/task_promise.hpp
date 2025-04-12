@@ -27,8 +27,10 @@ public:
 
     auto get_return_object();
 
+    // 协程开始时不挂起
     std::suspend_never initial_suspend();
 
+    // 协程结束时挂起
     std::suspend_always final_suspend() noexcept;
 
     void unhandled_exception();
@@ -41,7 +43,12 @@ public:
     TaskAwaiter<OtherResultType> await_transform(Task<OtherResultType>&& task);
 
 public:
+    // 阻塞获取结果值(但其实如果任务已经完成, 肯定是有值的, 那么就不会阻塞)
     ResultType GetResult();
+
+    // 用于注册一个在任务完成(有结果或抛出异常)后执行的回调函数
+    // 如果 result_ 已有值 (任务已完成), 则立刻调用该回调;
+    // 否则将回调存入 callbacks_, 待任务完成后再统一执行
     void OnCompleted(ResultCallback&& func);
 
 private:

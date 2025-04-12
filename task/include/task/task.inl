@@ -4,6 +4,7 @@
 
 #include "task.hpp"
 //
+#include "task/result.hpp"
 #include "task_promise.hpp"
 
 template <typename ResultType>
@@ -16,9 +17,10 @@ ResultType Task<ResultType>::GetResult() {
 
 template <typename ResultType>
 Task<ResultType> &Task<ResultType>::Then(ResultValueCallback &&func) {
-    h_.promise().OnCompleted([func](auto result) {
+    // 注册当 simple_task 任务完成时(即 result_ 有结果即 co_return 返回时调用 return_value 后)的回调
+    h_.promise().OnCompleted([func](Result<ResultType> result) {
         try {
-            func(result.GetOrThrow());
+            func(result.GetOrThrow());  // 回调: debug("simple task end: ", i)
         } catch (std::exception const &e) {
         }
     });
@@ -27,19 +29,20 @@ Task<ResultType> &Task<ResultType>::Then(ResultValueCallback &&func) {
 
 template <typename ResultType>
 Task<ResultType> &Task<ResultType>::Catching(ResultExceptionCallback &&func) {
-    h_.promise().OnCompleted([func](auto result) {
+    h_.promise().OnCompleted([func](Result<ResultType> result) {
         try {
-            result.GetOrThrow();
+            result.GetOrThrow();  // 获取结果中可能存在的异常, 如果没有异常, 自然没作用
         } catch (std::exception const &e) {
-            func(e);
+            func(e);  // 如果结果中有异常则处理异常
         }
     });
     return *this;
 }
 
+// NOTE: [h]() { h.resume(); } 传到这里 func 来了
 template <typename ResultType>
 Task<ResultType> &Task<ResultType>::Finally(std::function<void()> &&func) {
-    h_.promise().OnCompleted([func](auto) { func(); });
+    h_.promise().OnCompleted([func](Result<ResultType>) { func(); });
     return *this;
 }
 
@@ -70,7 +73,7 @@ Task<void>::Task(std::coroutine_handle<promise_type> handle) : h_(handle) {}
 void Task<void>::GetResult() { return h_.promise().GetResult(); }
 
 Task<void> &Task<void>::Then(ResultCallback &&func) {
-    h_.promise().OnCompleted([func](auto result) {
+    h_.promise().OnCompleted([func](Result<void> result) {
         try {
             result.GetOrThrow();
             func();
@@ -81,7 +84,7 @@ Task<void> &Task<void>::Then(ResultCallback &&func) {
 }
 
 Task<void> &Task<void>::Catching(ExceptionCallback &&func) {
-    h_.promise().OnCompleted([func](auto result) {
+    h_.promise().OnCompleted([func](Result<void> result) {
         try {
             result.GetOrThrow();
         } catch (std::exception const &e) {
@@ -92,7 +95,7 @@ Task<void> &Task<void>::Catching(ExceptionCallback &&func) {
 }
 
 Task<void> &Task<void>::Finally(std::function<void()> &&func) {
-    h_.promise().OnCompleted([func](auto) { func(); });
+    h_.promise().OnCompleted([func](Result<void>) { func(); });
     return *this;
 }
 

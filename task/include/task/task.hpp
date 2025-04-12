@@ -25,10 +25,15 @@ struct Task {
     Task &operator=(Task const &) = delete;
 
 public:
+    // 阻塞获取结果值 (也见 PromiseType::GetResult())
     ResultType GetResult();
 
+    // 在任务成功完成并产生结果时执行一个回调 (可拿到协程返回值)
+    // 返回 Task& 为了链式调用
     Task &Then(ResultValueCallback &&func);
 
+    // 在任务执行过程中出现异常时执行一个回调 (可捕获并处理抛出的异常)
+    // 返回 Task& 为了链式调用
     Task &Catching(ResultExceptionCallback &&func);
 
     Task &Finally(std::function<void()> &&func);

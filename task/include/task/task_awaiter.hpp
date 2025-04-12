@@ -21,8 +21,10 @@ struct TaskAwaiter {
     TaskAwaiter &operator=(TaskAwaiter const &) = delete;
 
 public:
+    // 返回 false 协程即将挂起
     bool await_ready();
 
+    // 协程挂起前的一些操作
     void await_suspend(std::coroutine_handle<> h);
 
     // NOTE: 协程恢复执行时, 被等待的 Task 已经执行完, 调用 GetResult 获取结果
