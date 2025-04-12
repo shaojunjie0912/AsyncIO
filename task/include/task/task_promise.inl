@@ -1,8 +1,18 @@
 #pragma once
 
+#include "task/task_awaiter.hpp"
 #include "task_promise.hpp"
 //
-#include "task.inl"
+#include "task.hpp"
+
+// NOTE: 为什么模板类型推断失败
+// template <typename ResultType>
+// template <typename _ResultType>
+// auto TaskPromise<ResultType>::await_transform(Task<_ResultType>&& task) {
+//     return TaskAwaiter{std::move(task)};
+// }
+// NOTE: 因为 TaskAwaiter 构造函数参数为 Task<ResultType> &&
+// 编译器不知道用哪个类型实例化模板参数
 
 template <typename ResultType>
 auto TaskPromise<ResultType>::get_return_object() {
@@ -38,9 +48,9 @@ void TaskPromise<ResultType>::return_value(ResultType value) {
 }
 
 template <typename ResultType>
-template <typename _ResultType>
-auto TaskPromise<ResultType>::await_transform(Task<_ResultType>&& task) {
-    return TaskAwaiter{std::forward<Task<_ResultType>>(task)};
+template <typename OtherResultType>
+TaskAwaiter<OtherResultType> TaskPromise<ResultType>::await_transform(Task<OtherResultType>&& task) {
+    return TaskAwaiter<OtherResultType>{std::move(task)};
 }
 
 template <typename ResultType>
@@ -96,10 +106,16 @@ void TaskPromise<void>::return_void() {
     NotifyCallbacks();
 }
 
-template <typename _ResultType>
-auto TaskPromise<void>::await_transform(Task<_ResultType>&& task) {
-    return TaskAwaiter<_ResultType>{std::forward<Task<_ResultType>>(task)};
+template <typename OtherResultType>
+TaskAwaiter<OtherResultType> TaskPromise<void>::await_transform(Task<OtherResultType>&& task) {
+    return TaskAwaiter<OtherResultType>{std::move(task)};
 }
+
+// TODO: 为什么模板类型推断失败
+// template <typename _ResultType>
+// auto TaskPromise<void>::await_transform(Task<_ResultType>&& task) {
+//     return TaskAwaiter{std::move(task)};
+// }
 
 void TaskPromise<void>::GetResult() {
     std::unique_lock lk{mtx_};

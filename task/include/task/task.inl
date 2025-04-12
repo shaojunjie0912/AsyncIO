@@ -4,7 +4,10 @@
 
 #include "task.hpp"
 //
-#include "task_promise.inl"
+#include "task_promise.hpp"
+
+template <typename ResultType>
+Task<ResultType>::Task(std::coroutine_handle<promise_type> handle) : h_(handle) {}
 
 template <typename ResultType>
 ResultType Task<ResultType>::GetResult() {
@@ -12,7 +15,7 @@ ResultType Task<ResultType>::GetResult() {
 }
 
 template <typename ResultType>
-Task<ResultType> &Task<ResultType>::Then(ResultCallback &&func) {
+Task<ResultType> &Task<ResultType>::Then(ResultValueCallback &&func) {
     h_.promise().OnCompleted([func](auto result) {
         try {
             func(result.GetOrThrow());
@@ -23,7 +26,7 @@ Task<ResultType> &Task<ResultType>::Then(ResultCallback &&func) {
 }
 
 template <typename ResultType>
-Task<ResultType> &Task<ResultType>::Catching(ExceptionCallback &&func) {
+Task<ResultType> &Task<ResultType>::Catching(ResultExceptionCallback &&func) {
     h_.promise().OnCompleted([func](auto result) {
         try {
             result.GetOrThrow();
@@ -36,7 +39,7 @@ Task<ResultType> &Task<ResultType>::Catching(ExceptionCallback &&func) {
 
 template <typename ResultType>
 Task<ResultType> &Task<ResultType>::Finally(std::function<void()> &&func) {
-    h_.promise().OnCompleted([func](auto result) { func(); });
+    h_.promise().OnCompleted([func](auto) { func(); });
     return *this;
 }
 
@@ -62,6 +65,8 @@ Task<ResultType> &Task<ResultType>::operator=(Task &&other) noexcept {
 }
 
 // void specialization implementations
+Task<void>::Task(std::coroutine_handle<promise_type> handle) : h_(handle) {}
+
 void Task<void>::GetResult() { return h_.promise().GetResult(); }
 
 Task<void> &Task<void>::Then(ResultCallback &&func) {

@@ -7,25 +7,31 @@
 
 template <typename ResultType>
 struct Task {
-    using ResultCallback = std::function<void(Result<ResultType>)>;
-    using ExceptionCallback = std::function<void(std::exception const &)>;
+    using ResultValueCallback = std::function<void(ResultType)>;
+    using ResultExceptionCallback = std::function<void(std::exception const &)>;
     using promise_type = TaskPromise<ResultType>;
 
-    ResultType GetResult();
-
-    Task &Then(ResultCallback &&func);
-    Task &Catching(ExceptionCallback &&func);
-    Task &Finally(std::function<void()> &&func);
-
-    explicit Task(std::coroutine_handle<promise_type> handle) noexcept : h_(handle) {}
+    explicit Task(std::coroutine_handle<promise_type> handle);
 
     ~Task() noexcept;
 
     // move-only
     Task(Task &&other) noexcept;
+
     Task &operator=(Task &&other) noexcept;
+
     Task(Task const &) = delete;
+
     Task &operator=(Task const &) = delete;
+
+public:
+    ResultType GetResult();
+
+    Task &Then(ResultValueCallback &&func);
+
+    Task &Catching(ResultExceptionCallback &&func);
+
+    Task &Finally(std::function<void()> &&func);
 
 private:
     std::coroutine_handle<promise_type> h_;
@@ -44,7 +50,7 @@ struct Task<void> {
     Task &Catching(ExceptionCallback &&func);
     Task &Finally(std::function<void()> &&func);
 
-    explicit Task(std::coroutine_handle<promise_type> handle) noexcept : h_(handle) {}
+    explicit Task(std::coroutine_handle<promise_type> handle);
 
     ~Task() noexcept;
 

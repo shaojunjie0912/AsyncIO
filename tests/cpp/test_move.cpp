@@ -36,6 +36,15 @@ struct MoveOnly {
     void Print() { std::cout << "val: " << *p_ << '\n'; }
 };
 
+template <typename T>
+struct Foo {};
+
+template <typename T>
+struct Bar {
+    Bar(Foo<T>&& foo) : foo_(std::forward<Foo<T>>(foo)) {}
+    Foo<T> foo_;
+};
+
 int main() {
     auto t{MoveOnly{4}.Trans()};
     t.Print();

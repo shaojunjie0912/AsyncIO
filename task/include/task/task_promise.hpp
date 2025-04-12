@@ -8,9 +8,10 @@
 #include <optional>
 #include <vector>
 
+#include "task/task_awaiter.hpp"
 #include "task_forward.hpp"
 //
-#include "result.inl"
+#include "result.hpp"
 
 // TODO: 还是要给 Result 封装一下, 外部不知道是 variant
 
@@ -25,13 +26,19 @@ public:
     using handle_type = std::coroutine_handle<TaskPromise>;
 
     auto get_return_object();
+
     std::suspend_never initial_suspend();
+
     std::suspend_always final_suspend() noexcept;
+
     void unhandled_exception();
+
     void return_value(ResultType value);
 
-    template <typename _ResultType>
-    auto await_transform(Task<_ResultType>&& task);
+    // TODO: 类模板 TaskPormise 中的函数模板 await_transform 的模板参数
+    // 要支持跟类模板 Task 不同的类型, 允许一个协程内部可以 co_await 不同类型的 Task
+    template <typename OtherResultType>
+    TaskAwaiter<OtherResultType> await_transform(Task<OtherResultType>&& task);
 
 public:
     ResultType GetResult();
@@ -55,15 +62,20 @@ public:
     using handle_type = std::coroutine_handle<TaskPromise<void>>;
 
     auto get_return_object();
+
     std::suspend_never initial_suspend();
+
     std::suspend_always final_suspend() noexcept;
+
     void unhandled_exception();
+
     void return_void();
 
-    template <typename _ResultType>
-    auto await_transform(Task<_ResultType>&& task);
+    template <typename OtherResultType>
+    TaskAwaiter<OtherResultType> await_transform(Task<OtherResultType>&& task);
 
     void GetResult();
+
     void OnCompleted(ResultCallback&& func);
 
 private:
