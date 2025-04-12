@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/sjj/Workspace/CuteCoro/tests/quick_tests",
-      "program": "/home/sjj/Workspace/CuteCoro/tests/quick_tests/build/Debug/outDebug",
+      "cwd": "/home/sjj/Workspace/CuteCoro/tests/cpp",
+      "program": "/home/sjj/Workspace/CuteCoro/tests/cpp/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
