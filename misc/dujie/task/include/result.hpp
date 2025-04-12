@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <variant>
 
+#include "task_forward.hpp"
+
 // TODO: variant
 // template <typename T>
 // using Result = std::variant<T, std::exception_ptr>;
@@ -14,33 +16,25 @@ template <typename ResultType>
 struct Result {
 public:
     // 默认构造为空状态或错误状态
-    Result() : has_value_(false) {}
+    Result();
 
     // 值构造函数
-    explicit Result(ResultType&& value) : value_(std::move(value)), has_value_(true) {}
+    explicit Result(ResultType&& value);
 
     // 异常构造函数
-    explicit Result(std::exception_ptr exception_ptr) : exception_ptr_(exception_ptr), has_value_(false) {}
+    explicit Result(std::exception_ptr exception_ptr);
 
     // 检查是否包含值
-    bool HasValue() const noexcept { return has_value_; }
+    bool HasValue() const noexcept;
 
     // 检查是否有错误
-    bool HasError() const noexcept { return !has_value_ && exception_ptr_; }
+    bool HasError() const noexcept;
 
     // 获取值或抛出异常
-    ResultType& GetOrThrow() {
-        if (!has_value_) {
-            if (exception_ptr_) {
-                std::rethrow_exception(exception_ptr_);
-            }
-            throw std::logic_error("Result contains no value");
-        }
-        return value_;
-    }
+    ResultType& GetOrThrow();
 
     // 安全地获取值指针（不抛出异常）
-    ResultType* ValueOrNull() noexcept { return has_value_ ? &value_ : nullptr; }
+    ResultType* ValueOrNull() noexcept;
 
 private:
     ResultType value_{};
@@ -53,25 +47,23 @@ template <>
 struct Result<void> {
 public:
     // 默认构造为成功状态
-    Result() : has_error_(false) {}
+    Result();
 
     // 异常构造函数
-    explicit Result(std::exception_ptr exception_ptr) : exception_ptr_(exception_ptr), has_error_(true) {}
+    explicit Result(std::exception_ptr exception_ptr);
 
     // 检查是否成功
-    bool HasValue() const noexcept { return !has_error_; }
+    bool HasValue() const noexcept;
 
     // 检查是否有错误
-    bool HasError() const noexcept { return has_error_; }
+    bool HasError() const noexcept;
 
     // 抛出异常或正常返回
-    void GetOrThrow() {
-        if (has_error_ && exception_ptr_) {
-            std::rethrow_exception(exception_ptr_);
-        }
-    }
+    void GetOrThrow();
 
 private:
     std::exception_ptr exception_ptr_;
     bool has_error_ = false;
 };
+
+#include "result.inl"
