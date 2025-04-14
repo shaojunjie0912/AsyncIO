@@ -34,4 +34,4 @@ private:
     Task<ResultType> task_;
 };
 
-#include "task_awaiter.inl"
+#include "task_awaiter_impl.hpp"

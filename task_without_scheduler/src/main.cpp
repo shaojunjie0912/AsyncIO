@@ -23,7 +23,7 @@ Task<int> simple_task3() {
 
 Task<int> simple_task() {
     debug("task start ...");
-    auto result2 = co_await simple_task2();  // 挂起当前协程 simple_task 让出执行权给被等待的任务 simple_task2
+    auto result2 = co_await simple_task2();  // NOTE: 挂起当前协程 simple_task 让出执行权给被等待的任务 simple_task2
     debug("returns from task2: ", result2);
     auto result3 = co_await simple_task3();
     debug("returns from task3: ", result3);

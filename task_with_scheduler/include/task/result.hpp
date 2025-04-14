@@ -42,28 +42,4 @@ private:
     bool has_value_ = false;  // 明确的状态标志
 };
 
-// 针对 void 类型的 Result 类模板特化: 不需要结果的异步任务
-template <>
-struct Result<void> {
-public:
-    // 默认构造为成功状态
-    Result();
-
-    // 异常构造函数
-    explicit Result(std::exception_ptr exception_ptr);
-
-    // 检查是否成功
-    bool HasValue() const noexcept;
-
-    // 检查是否有错误
-    bool HasError() const noexcept;
-
-    // 抛出异常或正常返回
-    void GetOrThrow();
-
-private:
-    std::exception_ptr exception_ptr_;
-    bool has_error_ = false;
-};
-
-#include "result.inl"
+#include "result_impl.hpp"
