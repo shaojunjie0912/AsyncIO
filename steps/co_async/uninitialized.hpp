@@ -1,7 +1,8 @@
 #pragma once
 
-#include <utility>
 #include <memory>
+#include <utility>
+
 #include "non_void_helper.hpp"
 
 namespace co_async {
@@ -32,9 +33,7 @@ struct Uninitialized {
 
 template <>
 struct Uninitialized<void> {
-    auto moveValue() {
-        return NonVoidHelper<>{};
-    }
+    auto moveValue() { return NonVoidHelper<>{}; }
 
     void putValue(NonVoidHelper<>) {}
 };
@@ -48,4 +47,4 @@ struct Uninitialized<T &> : Uninitialized<std::reference_wrapper<T>> {};
 template <class T>
 struct Uninitialized<T &&> : Uninitialized<T> {};
 
-} // namespace co_async
+}  // namespace co_async

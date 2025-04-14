@@ -5,18 +5,10 @@
 
 template <class Value, class Compare = std::less<Value>>
 struct RbTree {
-    enum RbColor {
-        RED,
-        BLACK
-    };
+    enum RbColor { RED, BLACK };
 
     struct RbNode {
-        RbNode() noexcept
-            : left(nullptr),
-              right(nullptr),
-              parent(nullptr),
-              tree(nullptr),
-              color(RED) {}
+        RbNode() noexcept : left(nullptr), right(nullptr), parent(nullptr), tree(nullptr), color(RED) {}
 
         RbNode(RbNode &&) = delete;
 
@@ -84,8 +76,7 @@ private:
         RbNode *parent = nullptr;
         RbNode *grandParent = nullptr;
 
-        while (node != root && node->color != BLACK &&
-               node->parent->color == RED) {
+        while (node != root && node->color != BLACK && node->parent->color == RED) {
             parent = node->parent;
             grandParent = parent->parent;
 
@@ -306,33 +297,21 @@ private:
 public:
     RbTree() noexcept : root(nullptr) {}
 
-    explicit RbTree(Compare comp) noexcept(noexcept(Compare(comp)))
-        : root(nullptr),
-          comp(comp) {}
+    explicit RbTree(Compare comp) noexcept(noexcept(Compare(comp))) : root(nullptr), comp(comp) {}
 
     RbTree(RbTree &&) = delete;
 
     ~RbTree() noexcept {}
 
-    void insert(Value &value) noexcept {
-        doInsert(&static_cast<RbNode &>(value));
-    }
+    void insert(Value &value) noexcept { doInsert(&static_cast<RbNode &>(value)); }
 
-    void erase(Value &value) noexcept {
-        doErase(&static_cast<RbNode &>(value));
-    }
+    void erase(Value &value) noexcept { doErase(&static_cast<RbNode &>(value)); }
 
-    bool empty() const noexcept {
-        return root == nullptr;
-    }
+    bool empty() const noexcept { return root == nullptr; }
 
-    Value &front() const noexcept {
-        return static_cast<Value &>(*getFront());
-    }
+    Value &front() const noexcept { return static_cast<Value &>(*getFront()); }
 
-    Value &back() const noexcept {
-        return static_cast<Value &>(*getBack());
-    }
+    Value &back() const noexcept { return static_cast<Value &>(*getBack()); }
 
     template <class Visitor>
     void traversalInorder(Visitor &&visitor) {

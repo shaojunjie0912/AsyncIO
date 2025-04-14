@@ -1,3 +1,4 @@
+
 #include <chrono>
 #include <coroutine>
 
@@ -29,7 +30,9 @@ struct Promise {
 
     void unhandled_exception() { throw; }
 
-    // co_yield 存储值后就挂起
+    // co_yield 存储值后就挂起, 因为返回了 suspend_always 所以执行权返回给 main
+    // NOTE: co_yield 挂起时不会自动使用 await_suspend 中保存的 mPrevious 这个 hello 协程的句柄
+    // 显然得精确指定才行
     auto yield_value(int ret) {
         mRetValue = ret;
         return std::suspend_always();
@@ -88,7 +91,7 @@ struct WorldTask {
 
 WorldTask world() {
     debug(), "world";
-    co_yield 422;
+    co_yield 422;  // 这个值只是存到了 WorldTask 的 Promise 中
     co_yield 444;
     co_return;
 }

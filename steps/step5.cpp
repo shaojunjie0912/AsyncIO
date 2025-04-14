@@ -3,6 +3,7 @@
 #include <deque>
 #include <queue>
 #include <thread>
+
 #include "debug.hpp"
 
 using namespace std::chrono_literals;
@@ -37,26 +38,18 @@ struct PreviousAwaiter {
 
 template <class T>
 struct Promise {
-    auto initial_suspend() noexcept {
-        return std::suspend_always();
-    }
+    auto initial_suspend() noexcept { return std::suspend_always(); }
 
-    auto final_suspend() noexcept {
-        return PreviousAwaiter(mPrevious);
-    }
+    auto final_suspend() noexcept { return PreviousAwaiter(mPrevious); }
 
-    void unhandled_exception() noexcept {
-        mException = std::current_exception();
-    }
+    void unhandled_exception() noexcept { mException = std::current_exception(); }
 
     auto yield_value(T ret) noexcept {
         new (&mResult) T(std::move(ret));
         return std::suspend_always();
     }
 
-    void return_value(T ret) noexcept {
-        new (&mResult) T(std::move(ret));
-    }
+    void return_value(T ret) noexcept { new (&mResult) T(std::move(ret)); }
 
     T result() {
         if (mException) [[unlikely]] {
@@ -67,9 +60,7 @@ struct Promise {
         return ret;
     }
 
-    std::coroutine_handle<Promise> get_return_object() {
-        return std::coroutine_handle<Promise>::from_promise(*this);
-    }
+    std::coroutine_handle<Promise> get_return_object() { return std::coroutine_handle<Promise>::from_promise(*this); }
 
     std::coroutine_handle<> mPrevious{};
     std::exception_ptr mException{};
@@ -84,20 +75,13 @@ struct Promise {
 
 template <>
 struct Promise<void> {
-    auto initial_suspend() noexcept {
-        return std::suspend_always();
-    }
+    auto initial_suspend() noexcept { return std::suspend_always(); }
 
-    auto final_suspend() noexcept {
-        return PreviousAwaiter(mPrevious);
-    }
+    auto final_suspend() noexcept { return PreviousAwaiter(mPrevious); }
 
-    void unhandled_exception() noexcept {
-        mException = std::current_exception();
-    }
+    void unhandled_exception() noexcept { mException = std::current_exception(); }
 
-    void return_void() noexcept {
-    }
+    void return_void() noexcept {}
 
     void result() {
         if (mException) [[unlikely]] {
@@ -105,9 +89,7 @@ struct Promise<void> {
         }
     }
 
-    std::coroutine_handle<Promise> get_return_object() {
-        return std::coroutine_handle<Promise>::from_promise(*this);
-    }
+    std::coroutine_handle<Promise> get_return_object() { return std::coroutine_handle<Promise>::from_promise(*this); }
 
     std::coroutine_handle<> mPrevious{};
     std::exception_ptr mException{};
@@ -121,14 +103,11 @@ template <class T = void>
 struct Task {
     using promise_type = Promise<T>;
 
-    Task(std::coroutine_handle<promise_type> coroutine) noexcept
-        : mCoroutine(coroutine) {}
+    Task(std::coroutine_handle<promise_type> coroutine) noexcept : mCoroutine(coroutine) {}
 
     Task(Task &&) = delete;
 
-    ~Task() {
-        mCoroutine.destroy();
-    }
+    ~Task() { mCoroutine.destroy(); }
 
     struct Awaiter {
         bool await_ready() const noexcept { return false; }
@@ -138,41 +117,33 @@ struct Task {
             return mCoroutine;
         }
 
-        T await_resume() const {
-            return mCoroutine.promise().result();
-        }
+        T await_resume() const { return mCoroutine.promise().result(); }
 
         std::coroutine_handle<promise_type> mCoroutine;
     };
 
-    auto operator co_await() const noexcept {
-        return Awaiter(mCoroutine);
-    }
+    auto operator co_await() const noexcept { return Awaiter(mCoroutine); }
 
-    operator std::coroutine_handle<>() const noexcept {
-        return mCoroutine;
-    }
+    // NOTE: Task 隐式转换为 coroutine_handle<>
+    operator std::coroutine_handle<>() const noexcept { return mCoroutine; }
 
     std::coroutine_handle<promise_type> mCoroutine;
 };
 
+// NOTE: Loop 其实就是调度器 Scheduler, 也见 Python asyncio.get_default_loop
 struct Loop {
-    std::deque<std::coroutine_handle<>> mReadyQueue;
+    std::deque<std::coroutine_handle<>> mReadyQueue;  // 所有准备就绪可以执行的协程
 
     struct TimerEntry {
         std::chrono::system_clock::time_point expireTime;
         std::coroutine_handle<> coroutine;
 
-        bool operator<(TimerEntry const &that) const noexcept {
-            return expireTime > that.expireTime;
-        }
+        bool operator<(TimerEntry const &that) const noexcept { return expireTime > that.expireTime; }
     };
 
     std::priority_queue<TimerEntry> mTimerHeap;
 
-    void addTask(std::coroutine_handle<> coroutine) {
-        mReadyQueue.push_front(coroutine);
-    }
+    void addTask(std::coroutine_handle<> coroutine) { mReadyQueue.push_front(coroutine); }
 
     void addTimer(std::chrono::system_clock::time_point expireTime, std::coroutine_handle<> coroutine) {
         mTimerHeap.push({expireTime, coroutine});
@@ -207,16 +178,11 @@ Loop &getLoop() {
 }
 
 struct SleepAwaiter {
-    bool await_ready() const noexcept {
-        return false;
-    }
+    bool await_ready() const noexcept { return false; }
 
-    void await_suspend(std::coroutine_handle<> coroutine) const {
-        getLoop().addTimer(mExpireTime, coroutine);
-    }
+    void await_suspend(std::coroutine_handle<> coroutine) const { getLoop().addTimer(mExpireTime, coroutine); }
 
-    void await_resume() const noexcept {
-    }
+    void await_resume() const noexcept {}
 
     std::chrono::system_clock::time_point mExpireTime;
 };
@@ -233,14 +199,14 @@ Task<void> sleep_for(std::chrono::system_clock::duration duration) {
 
 Task<int> hello1() {
     debug(), "hello1开始睡1秒";
-    co_await sleep_for(1s); // 1s 等价于 std::chrono::seconds(1)
+    co_await sleep_for(1s);  // 1s 等价于 std::chrono::seconds(1)
     debug(), "hello1睡醒了";
     co_return 1;
 }
 
 Task<int> hello2() {
     debug(), "hello2开始睡2秒";
-    co_await sleep_for(2s); // 2s 等价于 std::chrono::seconds(2)
+    co_await sleep_for(2s);  // 2s 等价于 std::chrono::seconds(2)
     debug(), "hello2睡醒了";
     co_return 2;
 }

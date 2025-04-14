@@ -1,15 +1,17 @@
-#include "co_async/debug.hpp"
-#include "co_async/task.hpp"
-#include "co_async/timer_loop.hpp"
-#include "co_async/when_any.hpp"
-#include "co_async/when_all.hpp"
-#include "co_async/and_then.hpp"
-#include <system_error>
-#include <cerrno>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+
+#include <cerrno>
+#include <system_error>
 #include <thread>
+
+#include "co_async/and_then.hpp"
+#include "co_async/debug.hpp"
+#include "co_async/task.hpp"
+#include "co_async/timer_loop.hpp"
+#include "co_async/when_all.hpp"
+#include "co_async/when_any.hpp"
 
 using namespace std::chrono_literals;
 
@@ -24,9 +26,7 @@ auto checkError(auto res) {
 }
 
 struct EpollFilePromise : Promise<void> {
-    auto get_return_object() {
-        return std::coroutine_handle<EpollFilePromise>::from_promise(*this);
-    }
+    auto get_return_object() { return std::coroutine_handle<EpollFilePromise>::from_promise(*this); }
 
     EpollFilePromise &operator=(EpollFilePromise &&) = delete;
 
@@ -45,9 +45,7 @@ struct EpollLoop {
         checkError(epoll_ctl(mEpoll, EPOLL_CTL_ADD, promise.mFileNo, &event));
     }
 
-    void removeListener(int fileNo) {
-        checkError(epoll_ctl(mEpoll, EPOLL_CTL_DEL, fileNo, NULL));
-    }
+    void removeListener(int fileNo) { checkError(epoll_ctl(mEpoll, EPOLL_CTL_DEL, fileNo, NULL)); }
 
     void tryRun(int timeout) {
         int res = checkError(epoll_wait(mEpoll, mEventBuf, std::size(mEventBuf), timeout));
@@ -59,25 +57,18 @@ struct EpollLoop {
     }
 
     EpollLoop &operator=(EpollLoop &&) = delete;
-    ~EpollLoop() {
-        close(mEpoll);
-    }
+    ~EpollLoop() { close(mEpoll); }
 
     int mEpoll = checkError(epoll_create1(0));
     struct epoll_event mEventBuf[64];
 };
 
-EpollFilePromise::~EpollFilePromise() {
-    mLoop->removeListener(mFileNo);
-}
+EpollFilePromise::~EpollFilePromise() { mLoop->removeListener(mFileNo); }
 
 struct EpollFileAwaiter {
-    bool await_ready() const noexcept {
-        return false;
-    }
+    bool await_ready() const noexcept { return false; }
 
-    void
-    await_suspend(std::coroutine_handle<EpollFilePromise> coroutine) const {
+    void await_suspend(std::coroutine_handle<EpollFilePromise> coroutine) const {
         auto &promise = coroutine.promise();
         promise.mLoop = &mLoop;
         promise.mFileNo = mFileNo;
@@ -94,17 +85,17 @@ struct EpollFileAwaiter {
     uint32_t mEvents;
 };
 
-inline Task<void, EpollFilePromise>
-wait_file(EpollLoop &loop, int fileNo, uint32_t events) {
+inline Task<void, EpollFilePromise> wait_file(EpollLoop &loop, int fileNo, uint32_t events) {
     co_await EpollFileAwaiter(loop, fileNo, events | EPOLLONESHOT);
 }
 
-}
+}  // namespace co_async
 
 co_async::EpollLoop epollLoop;
 co_async::TimerLoop timerLoop;
 
 co_async::Task<std::string> reader() {
+    // when_any 等待其中一个事件发生
     auto which = co_await when_any(wait_file(epollLoop, 0, EPOLLIN), sleep_for(timerLoop, 1s));
     if (which.index() != 0) {
         co_return "超过1秒没有收到任何输入";

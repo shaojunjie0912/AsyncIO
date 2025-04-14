@@ -1,13 +1,15 @@
-#include "co_async/debug.hpp"
-#include "co_async/task.hpp"
-#include "co_async/timer_loop.hpp"
-#include "co_async/epoll_loop.hpp"
-#include "co_async/when_any.hpp"
-#include "co_async/when_all.hpp"
-#include "co_async/and_then.hpp"
-#include <thread>
 #include <fcntl.h>
 #include <unistd.h>
+
+#include <thread>
+
+#include "co_async/and_then.hpp"
+#include "co_async/debug.hpp"
+#include "co_async/epoll_loop.hpp"
+#include "co_async/task.hpp"
+#include "co_async/timer_loop.hpp"
+#include "co_async/when_all.hpp"
+#include "co_async/when_any.hpp"
 
 using namespace std::chrono_literals;
 
@@ -28,8 +30,7 @@ co_async::Task<std::string> read_string(co_async::AsyncFile &file) {
             s.resize(exist + len);
             break;
         }
-        if (chunk < 65536)
-            chunk *= 4;
+        if (chunk < 65536) chunk *= 4;
     }
     co_return s;
 }
@@ -39,8 +40,7 @@ co_async::Task<void> async_main() {
     while (true) {
         auto s = co_await read_string(file);
         debug(), "读到了", s;
-        if (s == "quit\n")
-            break;
+        if (s == "quit\n") break;
     }
 }
 
