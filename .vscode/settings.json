@@ -1,4 +1,9 @@
 {
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.arguments": [
+    "--header-insertion=never"
+  ],
+  "xmake.debugConfigType": "codelldb",
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",
   "C_Cpp_Runner.debuggerPath": "gdb",
@@ -36,7 +41,9 @@
   "C_Cpp_Runner.enableWarnings": true,
   "C_Cpp_Runner.warningsAsError": false,
   "C_Cpp_Runner.compilerArgs": [],
-  "C_Cpp_Runner.linkerArgs": [],
+  "C_Cpp_Runner.linkerArgs": [
+    "-lfmt"
+  ],
   "C_Cpp_Runner.includePaths": [],
   "C_Cpp_Runner.includeSearch": [
     "*",

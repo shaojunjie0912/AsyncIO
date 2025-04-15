@@ -9,7 +9,10 @@ add_rules("plugin.compile_commands.autoupdate")
 set_warnings("allextra")
 set_defaultmode("debug")
 
--- includes("CuteCoro")
+add_requires("fmt")
+add_packages("fmt")
+
+includes("CuteCoro")
 -- includes("tests")
 -- includes("misc")
 -- includes("task_without_scheduler")
