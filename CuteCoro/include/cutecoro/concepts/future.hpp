@@ -5,6 +5,8 @@
 
 namespace cutecoro {
 
+// TODO: Future
+
 namespace concepts {
 
 template <typename Fut>

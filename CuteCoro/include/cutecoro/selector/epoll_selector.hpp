@@ -21,6 +21,7 @@ struct EpollSelector {
     void register_event(Event const& event) {
         epoll_event ev;
         ev.events = event.flags;
+        // 存储事件发生时要执行的任务协程句柄
         ev.data.ptr = const_cast<HandleInfo*>(&event.handle_info);  // NOTE: const_cast 去除常量属性
         if (epoll_ctl(epfd_, EPOLL_CTL_ADD, event.fd, &ev) == 0) {
             ++register_event_count_;
@@ -48,9 +49,7 @@ struct EpollSelector {
                 reinterpret_cast<HandleInfo*>(events[i].data.ptr);  // void* -> HandleInfo*
             if (handle_info->handle != nullptr &&
                 handle_info->handle != (Handle*)&handle_info->handle) {
-                Event event;
-                event.handle_info = *handle_info;  // TODO: 只有回调指针有用? fd 和 flags 没用?
-                result.push_back(std::move(event));
+                result.push_back(Event{.handle_info = *handle_info});
             } else {
                 // NOTE: 特殊处理: 表示有事件发生, 但是句柄信息的句柄指针代表没有相应回调需要处理
                 handle_info->handle = (Handle*)&handle_info->handle;

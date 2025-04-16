@@ -8,6 +8,8 @@
 
 namespace cutecoro {
 
+// TODO: Promise
+
 namespace concepts {
 
 template <typename P>

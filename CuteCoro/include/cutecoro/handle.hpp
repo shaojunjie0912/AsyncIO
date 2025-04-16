@@ -9,7 +9,7 @@ namespace cutecoro {
 
 using HandleId = uint64_t;  // 句柄 ID 数据类型
 
-// 句柄封装基类
+// 句柄基类
 // TODO: event_loop 类型擦除?
 struct Handle {
     // 句柄状态
@@ -23,7 +23,7 @@ struct Handle {
 
     virtual ~Handle() = default;
 
-    virtual void run() = 0;
+    virtual void run() = 0;  // 派生类(例如 PromiseType)必须重载 run() 方法
 
     void set_state(State state) { state_ = state; }
 
@@ -38,29 +38,30 @@ protected:
     State state_{Handle::UNSCHEDULED};  // 句柄状态
 };
 
-// 句柄信息封装类
+// 句柄信息
 struct HandleInfo {
-    // NOTE: 额外使用递增的句柄 ID 来跟踪句柄的生命周期
-    // 而不是只用原始指针, 因为一个刚销毁的协程地址可能跟一个新创建好的协程地址相同
     HandleId id{};     // 句柄 ID
-    Handle* handle{};  // 句柄指针(特殊标记当 handle == &handle 时, 指事件被触发且没有回调执行)
+    Handle* handle{};  // 句柄指针(特殊标记 handle == &handle, 指没有对应回调, 协程不需要挂起)
 };
 
-// 这就是为了给协程调用链追踪用的?
-// 协程句柄封装类
+// 协程句柄
 struct CoroHandle : Handle {
+    virtual ~CoroHandle() = default;
+
     std::string frame_name() const {
         const auto& frame_info = get_frame_info();
         return fmt::format("{} at {}:{}", frame_info.function_name(), frame_info.file_name(),
                            frame_info.line());
     }
 
-    virtual void dump_backtrace(size_t depth = 0) const;
-
+    // 立即调度
     void schedule();
 
-    // TODO: event_loop::cancel_handle()?
+    // 取消调度
     void cancel();
+
+    // TODO: CoroHandle 的 dump_backtrace() 啥也不做?
+    virtual void dump_backtrace(size_t depth = 0) const {};
 
 private:
     virtual const std::source_location& get_frame_info() const;

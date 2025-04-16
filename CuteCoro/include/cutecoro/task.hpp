@@ -2,13 +2,15 @@
 
 #include <fmt/format.h>
 
+#include <cassert>
 #include <coroutine>
+#include <source_location>
+#include <utility>
+//
 #include <cutecoro/concepts/promise.hpp>
 #include <cutecoro/event_loop.hpp>
 #include <cutecoro/handle.hpp>
 #include <cutecoro/result.hpp>
-#include <source_location>
-#include <utility>
 
 namespace cutecoro {
 
@@ -74,12 +76,14 @@ public:
     auto final_suspend() noexcept { return FinalAwaiter{}; }
 
 public:
-    // 恢复当前协程执行
-    void run() final { coro_handle::from_promise(*this).resume(); }
+    // 重载基类 Handle 的 run() 方法: 恢复协程执行
+    void run() override final { coro_handle::from_promise(*this).resume(); }
 
-    std::source_location const& get_frame_info() const final { return frame_info_; }
+    // 重载基类 CoroHandle 的 get_frame_info() 方法: 获取帧信息
+    std::source_location const& get_frame_info() const override final { return frame_info_; }
 
-    void dump_backtrace(size_t depth = 0) const final {
+    // 重载基类 CoroHandle 的 dump_backtrace() 方法: 打印栈回溯
+    void dump_backtrace(size_t depth = 0) const override final {
         fmt::println("[{}] {}", depth, frame_name());  // 打印当前协程
         if (continuation_) {
             continuation_->dump_backtrace(depth + 1);  // 打印包括之前协程的 backtrace
@@ -98,6 +102,10 @@ template <typename R = void>
 struct Task : NonCopyable {
     using promise_type = PromiseType<R>;
     using coro_handle = std::coroutine_handle<promise_type>;
+
+    // 友元类
+    template <concepts::Future>
+    friend struct ScheduledTask;
 
 public:
     explicit Task(coro_handle h) noexcept : handle_(h) {}
@@ -164,11 +172,14 @@ public:
     }
 
 public:
+    // 协程句柄是否有效
     bool valid() const { return handle_ != nullptr; }
 
+    // 协程是否完成
     bool done() const { return handle_.done(); }
 
 private:
+    // 销毁任务(取消调度 + 销毁句柄)
     void destory() {
         if (auto handle{std::exchange(handle_, nullptr)}) {
             handle.promise().cancel();  // TODO: 调用 CoroHandle::cancel

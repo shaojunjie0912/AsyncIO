@@ -48,6 +48,7 @@ public:
 
     struct WaitEventAwaiter {
         bool await_ready() noexcept {
+            // 指针自引用检测技巧, 哨兵值技术, 标记特殊状态(没有对应回调, 协程继续执行, 不需要挂起)
             bool ready = (event_.handle_info.handle == (Handle const*)&event_.handle_info.handle);
             event_.handle_info.handle = nullptr;
             return ready;
@@ -55,13 +56,14 @@ public:
 
         template <typename Promise>
         constexpr void await_suspend(std::coroutine_handle<Promise> handle) noexcept {
-            handle.promise().set_state(Handle::SUSPEND);
-            event_.handle_info = {
-                .id = handle.promise().get_handle_id(),
-                .handle = &handle.promise()  //< set callback
-            };
+            handle.promise().set_state(Handle::SUSPEND);  // 设置挂起状态
+            event_.handle_info = {.id = handle.promise().get_handle_id(),
+                                  // NOTE: 协程的 Promise 对象也是 Handle,
+                                  // 因此这里将其注册为事件回调
+                                  // 在 run_once() 中事件发生时会调用 run() 方法
+                                  .handle = &handle.promise()};
             if (!registered_) {
-                selector_.register_event(event_);
+                selector_.register_event(event_);  // 注册监听事件
                 registered_ = true;
             }
         }
@@ -70,6 +72,7 @@ public:
             event_.handle_info = {};  //< reset callback
         }
 
+        // 移除注册事件
         void destroy() noexcept {
             if (registered_) {
                 selector_.remove_event(event_);
@@ -84,22 +87,23 @@ public:
         bool registered_{false};
     };
 
+    // 等待特定的 IO 事件
     [[nodiscard]]
     auto wait_event(const Event& event) {
         return WaitEventAwaiter{selector_, event};
     }
 
-    // loop 直到所有回调都执行完
+    // 运行事件循环直到所有任务完成
     void run_until_complete();
 
 private:
-    // 判断 loop 是否停止
+    // 判断事件循环是否停止
     bool is_stop() { return schedule_.empty() && ready_.empty() && selector_.is_stop(); }
 
-    // 移除被取消的回调
+    // 清理已取消的定时任务
     void cleanup_delayed_call();
 
-    // 在指定时间点调度, 加入定时任务堆
+    // 在指定时间点执行任务, 加入定时任务堆
     // when: 希望回调被调度的相对时间
     // callback: 回调
     template <typename Rep, typename Period>
@@ -112,7 +116,7 @@ private:
         std::ranges::push_heap(schedule_, std::ranges::greater{}, &TimerHandle::first);
     }
 
-    // 单次 loop
+    // 执行事件循环的一次迭代
     void run_once();
 
 private:

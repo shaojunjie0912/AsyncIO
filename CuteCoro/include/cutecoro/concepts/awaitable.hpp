@@ -5,7 +5,10 @@
 
 namespace cutecoro {
 
+// TODO: Awaitable
+
 namespace detail {
+
 template <typename A>
 struct GetAwaiter : std::type_identity<A> {};
 
@@ -22,9 +25,11 @@ struct GetAwaiter<A> : std::type_identity<decltype(operator co_await(std::declva
 
 template <typename A>
 using GetAwaiter_t = typename GetAwaiter<A>::type;
+
 }  // namespace detail
 
 namespace concepts {
+
 template <typename A>
 concept Awaitable = requires {
     typename detail::GetAwaiter_t<A>;
@@ -34,6 +39,7 @@ concept Awaitable = requires {
         awaiter.await_resume();
     };
 };
+
 }  // namespace concepts
 
 template <concepts::Awaitable A>
