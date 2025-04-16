@@ -23,8 +23,10 @@ struct Handle {
 
     virtual ~Handle() = default;
 
+    // 对于 PromiseType: 恢复协程执行
     virtual void run() = 0;  // 派生类(例如 PromiseType)必须重载 run() 方法
 
+    // 设置句柄状态: (UNSCHEDULED SUSPEND SCHEDULED)
     void set_state(State state) { state_ = state; }
 
     HandleId get_handle_id() { return handle_id_; }
@@ -35,7 +37,7 @@ private:
     inline static HandleId handle_id_generation_ = 0;
 
 protected:
-    State state_{Handle::UNSCHEDULED};  // 句柄状态
+    State state_{Handle::UNSCHEDULED};  // 句柄状态 (默认: UNSCHEDULED 未调度)
 };
 
 // 句柄信息

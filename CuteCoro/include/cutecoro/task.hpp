@@ -21,6 +21,9 @@ inline constexpr NoWaitAtInitialSuspend no_wait_at_initial_suspend;
 template <typename R>
 struct Task;
 
+// PromiseType 继承自 CoroHandle 和 Result
+// - 具有 CoroHandle 的一些方法 (schedule)
+// - 具有 Result 的一些方法 (return_value/void)
 template <typename R = void>
 struct PromiseType : CoroHandle, Result<R> {
     using coro_handle = std::coroutine_handle<PromiseType>;
@@ -56,7 +59,7 @@ public:
     }
 
     struct FinalAwaiter {
-        // final_suspend 返回, 协程完成时始终暂停
+        // final_suspend 返回, 协程完成时始终挂起
         constexpr bool await_ready() const noexcept { return false; }
 
         template <typename Promise>
@@ -138,7 +141,7 @@ public:
             resumer.promise().set_state(Handle::SUSPEND);
             // 设置被 co_await 的协程的 continuation_
             self_coro_.promise().continuation_ = &resumer.promise();
-            // 调度被 co_await 的协程
+            // 将被 co_await 的协程加入调度(立即执行)
             self_coro_.promise().schedule();
         }
 
@@ -152,6 +155,7 @@ public:
                 if (!AwaiterBase::self_coro_) [[unlikely]] {
                     throw InvalidFuture{};
                 }
+                // 被 co_await 的协程执行结束后, 返回自己的结果
                 return AwaiterBase::self_coro_.promise().result();
             }
         };

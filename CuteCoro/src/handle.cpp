@@ -10,7 +10,7 @@ const std::source_location& CoroHandle::get_frame_info() const {
 
 void CoroHandle::schedule() {
     if (state_ == Handle::UNSCHEDULED) {
-        get_event_loop().call_soon(*this);
+        get_event_loop().call_soon(*this);  // *this 是继承自 CoroHandle 的 promise_type
     }
 }
 

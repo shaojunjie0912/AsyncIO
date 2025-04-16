@@ -8,7 +8,7 @@ EventLoop& get_event_loop() {
 }
 
 void EventLoop::run_until_complete() {
-    while (!is_stop()) {
+    while (!is_stop()) {  // NOTE: 这里 is_stop() 函数动态判断
         run_once();
     }
 }
