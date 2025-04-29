@@ -1,4 +1,9 @@
-target("demo_epoll_coro", function()
-    set_kind("binary")
-    add_files("demo_epoll_coro.cpp")
-end)
+add_packages("catch2")
+
+add_deps("cutecoro")
+
+-- pt: performance tests
+-- st: sample tests
+-- ut: unit tests
+
+includes("st")
