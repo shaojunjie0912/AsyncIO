@@ -40,7 +40,7 @@ private:
     Task task_;
 };
 
-// CTAD guide 类模板参数推导指引
+// deduction guide 类模板参数推导指引
 template <concepts::Future Fut>
 ScheduledTask(Fut&&) -> ScheduledTask<Fut>;
 

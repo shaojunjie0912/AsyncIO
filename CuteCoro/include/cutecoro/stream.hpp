@@ -18,6 +18,16 @@
 namespace cutecoro {
 
 namespace socket {
+bool set_blocking(int fd, bool blocking) {
+    if (fd < 0) return false;
+    if constexpr (SOCK_NONBLOCK != 0) {
+        return true;
+    } else {
+        unsigned int block = !blocking;
+        return !ioctl(fd, FIONBIO, &block);
+    }
+}
+}  // namespace socket
 
 struct Stream : NonCopyable {
     using Buffer = std::vector<char>;  // 经典 Buffer
@@ -137,7 +147,5 @@ inline uint16_t GetInPort(const sockaddr* sa) {
     }
     return ntohs(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_port);
 }
-
-}  // namespace socket
 
 }  // namespace cutecoro
