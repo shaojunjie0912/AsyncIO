@@ -30,7 +30,9 @@ public:
 
     Generator& operator=(Generator const&) = delete;
 
-    Generator(Generator&& other) noexcept : h_(std::exchange(other.h_, {})) { std::cout << "移动构造\n"; }
+    Generator(Generator&& other) noexcept : h_(std::exchange(other.h_, {})) {
+        std::cout << "移动构造\n";
+    }
 
     Generator& operator=(Generator&& other) noexcept {
         if (this != &other) {
@@ -100,7 +102,7 @@ public:
         }
     }
 
-    bool Done() {
+    bool done() {
         if (h_) {
             return h_.done();
         } else {

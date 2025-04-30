@@ -3,7 +3,7 @@
 namespace co_async {
 
 struct NoopLoop {
-    void run() {}
+    void Run() {}
 };
 
-} // namespace co_async
+}  // namespace co_async

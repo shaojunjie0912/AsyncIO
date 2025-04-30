@@ -28,8 +28,8 @@ struct Task {
         // initial_suspend: suspend_always 协程开始时就挂起
         std::suspend_always initial_suspend() { return {}; }
 
-        // 返回类型是一个 awaiter, await_ready 为 false 因此 prince 的 final_suspend 会挂起 prince 协程
-        // 然后由于 await_suspend 返回类型是协程句柄, 因此会返回到 princess 协程, 而不是调用者
+        // 返回类型是一个 awaiter, await_ready 为 false 因此 prince 的 final_suspend 会挂起 prince
+        // 协程 然后由于 await_suspend 返回类型是协程句柄, 因此会返回到 princess 协程, 而不是调用者
         auto final_suspend() noexcept {
             struct next_awaiter {
                 promise_type* me;

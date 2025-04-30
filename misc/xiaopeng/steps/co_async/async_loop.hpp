@@ -1,17 +1,18 @@
 #pragma once
 
-#include "timer_loop.hpp"
-#include "epoll_loop.hpp"
 #include <thread>
+
+#include "epoll_loop.hpp"
+#include "timer_loop.hpp"
 
 namespace co_async {
 
 struct AsyncLoop {
-    void run() {
+    void Run() {
         while (true) {
-            auto timeout = mTimerLoop.run();
+            auto timeout = mTimerLoop.Run();
             if (mEpollLoop.hasEvent()) {
-                mEpollLoop.run(timeout);
+                mEpollLoop.Run(timeout);
             } else if (timeout) {
                 std::this_thread::sleep_for(*timeout);
             } else {
@@ -20,17 +21,13 @@ struct AsyncLoop {
         }
     }
 
-    operator TimerLoop &() {
-        return mTimerLoop;
-    }
+    operator TimerLoop&() { return mTimerLoop; }
 
-    operator EpollLoop &() {
-        return mEpollLoop;
-    }
+    operator EpollLoop&() { return mEpollLoop; }
 
 private:
     TimerLoop mTimerLoop;
     EpollLoop mEpollLoop;
 };
 
-} // namespace co_async
+}  // namespace co_async

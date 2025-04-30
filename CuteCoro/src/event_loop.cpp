@@ -2,18 +2,18 @@
 
 namespace cutecoro {
 
-EventLoop& get_event_loop() {
+EventLoop& GetEventLoop() {
     static EventLoop event_loop;
     return event_loop;
 }
 
-void EventLoop::run_until_complete() {
-    while (!is_stop()) {  // NOTE: 这里 is_stop() 函数动态判断
-        run_once();
+void EventLoop::RunUntilComplete() {
+    while (!IsStop()) {  // NOTE: 这里 IsStop() 函数动态判断
+        RunOnce();
     }
 }
 
-void EventLoop::cleanup_delayed_call() {
+void EventLoop::CleanupDelayedCall() {
     // 移除被取消的回调
     while (!schedule_.empty()) {
         auto&& [when, handle_info] = schedule_[0];
@@ -27,8 +27,8 @@ void EventLoop::cleanup_delayed_call() {
     }
 }
 
-void EventLoop::run_once() {
-    std::optional<MSDuration> timeout;  // 调用 selector_.select() 的最大阻塞时间: ms
+void EventLoop::RunOnce() {
+    std::optional<MSDuration> timeout;  // 调用 selector_.Select() 的最大阻塞时间: ms
     if (!ready_.empty()) {              // 就绪队列非空,
         timeout.emplace(0);
     } else if (!schedule_.empty()) {
@@ -38,7 +38,7 @@ void EventLoop::run_once() {
 
     // 这里如果 timeout = 0 那就直接不阻塞了
     // 如果 timeout > 0 那么就会阻塞一会获取事件, 然后 schedule_ 中任务就 ready 了
-    auto event_lists = selector_.select(timeout.has_value() ? timeout->count() : -1);
+    auto event_lists = selector_.Select(timeout.has_value() ? timeout->count() : -1);
 
     // NOTE: 范围 for 循环中 auto&& 是万能引用
     for (auto&& event : event_lists) {
@@ -66,11 +66,11 @@ void EventLoop::run_once() {
             cancelled_.erase(iter);
             continue;
         }
-        handle->set_state(Handle::UNSCHEDULED);
-        handle->run();
+        handle->SetState(Handle::UNSCHEDULED);
+        handle->Run();
     }
 
-    cleanup_delayed_call();
+    CleanupDelayedCall();
 }
 
 }  // namespace cutecoro

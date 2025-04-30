@@ -181,7 +181,8 @@ struct Task {
     struct Awaiter {
         bool await_ready() const noexcept { return false; }
 
-        std::coroutine_handle<promise_type> await_suspend(std::coroutine_handle<> coroutine) const noexcept {
+        std::coroutine_handle<promise_type> await_suspend(
+            std::coroutine_handle<> coroutine) const noexcept {
             mCoroutine.promise().mPrevious = coroutine;
             return mCoroutine;
         }
@@ -201,7 +202,9 @@ struct Task {
 struct SleepUntilPromise : RbTree<SleepUntilPromise>::RbNode, Promise<void> {
     std::chrono::system_clock::time_point mExpireTime;
 
-    auto get_return_object() { return std::coroutine_handle<SleepUntilPromise>::from_promise(*this); }
+    auto get_return_object() {
+        return std::coroutine_handle<SleepUntilPromise>::from_promise(*this);
+    }
 
     SleepUntilPromise &operator=(SleepUntilPromise &&) = delete;
 
@@ -215,7 +218,7 @@ struct Loop {
 
     void addTimer(SleepUntilPromise &promise) { mRbTimer.insert(promise); }
 
-    void run(std::coroutine_handle<> coroutine) {
+    void Run(std::coroutine_handle<> coroutine) {
         while (!coroutine.done()) {
             coroutine.resume();
             while (!mRbTimer.empty()) {
@@ -288,7 +291,9 @@ struct ReturnPreviousPromise {
 
     void return_value(std::coroutine_handle<> previous) noexcept { mPrevious = previous; }
 
-    auto get_return_object() { return std::coroutine_handle<ReturnPreviousPromise>::from_promise(*this); }
+    auto get_return_object() {
+        return std::coroutine_handle<ReturnPreviousPromise>::from_promise(*this);
+    }
 
     std::coroutine_handle<> mPrevious{};
 
@@ -298,7 +303,8 @@ struct ReturnPreviousPromise {
 struct ReturnPreviousTask {
     using promise_type = ReturnPreviousPromise;
 
-    ReturnPreviousTask(std::coroutine_handle<promise_type> coroutine) noexcept : mCoroutine(coroutine) {}
+    ReturnPreviousTask(std::coroutine_handle<promise_type> coroutine) noexcept
+        : mCoroutine(coroutine) {}
 
     ReturnPreviousTask(ReturnPreviousTask &&) = delete;
 
@@ -334,7 +340,8 @@ struct WhenAllAwaiter {
 };
 
 template <class T>
-ReturnPreviousTask whenAllHelper(auto const &t, WhenAllCtlBlock &control, Uninitialized<T> &result) {
+ReturnPreviousTask whenAllHelper(auto const &t, WhenAllCtlBlock &control,
+                                 Uninitialized<T> &result) {
     try {
         result.putValue(co_await t);
     } catch (...) {
@@ -349,12 +356,14 @@ ReturnPreviousTask whenAllHelper(auto const &t, WhenAllCtlBlock &control, Uninit
 }
 
 template <std::size_t... Is, class... Ts>
-Task<std::tuple<typename AwaitableTraits<Ts>::NonVoidRetType...>> whenAllImpl(std::index_sequence<Is...>, Ts &&...ts) {
+Task<std::tuple<typename AwaitableTraits<Ts>::NonVoidRetType...>> whenAllImpl(
+    std::index_sequence<Is...>, Ts &&...ts) {
     WhenAllCtlBlock control{sizeof...(Ts)};
     std::tuple<Uninitialized<typename AwaitableTraits<Ts>::RetType>...> result;
     ReturnPreviousTask taskArray[]{whenAllHelper(ts, control, std::get<Is>(result))...};
     co_await WhenAllAwaiter(control, taskArray);
-    co_return std::tuple<typename AwaitableTraits<Ts>::NonVoidRetType...>(std::get<Is>(result).moveValue()...);
+    co_return std::tuple<typename AwaitableTraits<Ts>::NonVoidRetType...>(
+        std::get<Is>(result).moveValue()...);
 }
 
 template <Awaitable... Ts>
@@ -392,7 +401,8 @@ struct WhenAnyAwaiter {
 };
 
 template <class T>
-ReturnPreviousTask whenAnyHelper(auto const &t, WhenAnyCtlBlock &control, Uninitialized<T> &result, std::size_t index) {
+ReturnPreviousTask whenAnyHelper(auto const &t, WhenAnyCtlBlock &control, Uninitialized<T> &result,
+                                 std::size_t index) {
     try {
         result.putValue(co_await t);
     } catch (...) {
@@ -404,14 +414,16 @@ ReturnPreviousTask whenAnyHelper(auto const &t, WhenAnyCtlBlock &control, Uninit
 }
 
 template <std::size_t... Is, class... Ts>
-Task<std::variant<typename AwaitableTraits<Ts>::NonVoidRetType...>> whenAnyImpl(std::index_sequence<Is...>,
-                                                                                Ts &&...ts) {
+Task<std::variant<typename AwaitableTraits<Ts>::NonVoidRetType...>> whenAnyImpl(
+    std::index_sequence<Is...>, Ts &&...ts) {
     WhenAnyCtlBlock control{};
     std::tuple<Uninitialized<typename AwaitableTraits<Ts>::RetType>...> result;
     ReturnPreviousTask taskArray[]{whenAnyHelper(ts, control, std::get<Is>(result), Is)...};
     co_await WhenAnyAwaiter(control, taskArray);
     Uninitialized<std::variant<typename AwaitableTraits<Ts>::NonVoidRetType...>> varResult;
-    ((control.mIndex == Is && (varResult.putValue(std::in_place_index<Is>, std::get<Is>(result).moveValue()), 0)), ...);
+    ((control.mIndex == Is &&
+      (varResult.putValue(std::in_place_index<Is>, std::get<Is>(result).moveValue()), 0)),
+     ...);
     co_return varResult.moveValue();
 }
 
@@ -446,7 +458,7 @@ Task<int> hello() {
 
 int main() {
     auto t = hello();
-    getLoop().run(t);
+    getLoop().Run(t);
     debug(), "主函数中得到hello结果:", t.mCoroutine.promise().result();
     return 0;
 }

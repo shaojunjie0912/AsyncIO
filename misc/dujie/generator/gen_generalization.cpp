@@ -152,7 +152,7 @@ public:
         }
     }
 
-    bool Done() {
+    bool done() {
         if (h_) {
             return h_.done();
         } else {

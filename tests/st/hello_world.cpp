@@ -6,15 +6,15 @@
 
 using cutecoro::Task;
 
-Task<std::string_view> hello() { co_return "hello"; }
+Task<std::string_view> Hello() { co_return "hello"; }
 
-Task<std::string_view> world() { co_return "world"; }
+Task<std::string_view> World() { co_return "world"; }
 
-Task<std::string> hello_world() {
-    co_return fmt::format("{} {}", co_await hello(), co_await world());
+Task<std::string> HelloWorld() {
+    co_return fmt::format("{} {}", co_await Hello(), co_await World());
 }
 
 int main() {
-    fmt::print("run result: {}\n", cutecoro::run(hello_world()));
+    fmt::print("Run result: {}\n", cutecoro::Run(HelloWorld()));
     return 0;
 }

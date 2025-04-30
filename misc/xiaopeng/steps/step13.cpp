@@ -26,7 +26,9 @@ auto checkError(auto res) {
 }
 
 struct EpollFilePromise : Promise<void> {
-    auto get_return_object() { return std::coroutine_handle<EpollFilePromise>::from_promise(*this); }
+    auto get_return_object() {
+        return std::coroutine_handle<EpollFilePromise>::from_promise(*this);
+    }
 
     EpollFilePromise &operator=(EpollFilePromise &&) = delete;
 

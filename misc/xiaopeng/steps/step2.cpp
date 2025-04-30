@@ -40,7 +40,9 @@ struct Promise {
 
     void return_void() { mRetValue = 0; }
 
-    std::coroutine_handle<Promise> get_return_object() { return std::coroutine_handle<Promise>::from_promise(*this); }
+    std::coroutine_handle<Promise> get_return_object() {
+        return std::coroutine_handle<Promise>::from_promise(*this);
+    }
 
     int mRetValue;
     std::coroutine_handle<> mPrevious = nullptr;  // 保存前一个协程的句柄(后面用于恢复前一个协程)

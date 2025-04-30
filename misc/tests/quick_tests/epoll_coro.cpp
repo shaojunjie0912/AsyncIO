@@ -53,7 +53,9 @@ public:
 class Task {
 public:
     struct promise_type {
-        Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this)}; }
+        Task get_return_object() {
+            return Task{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
         std::suspend_never initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void return_void() {}
@@ -98,7 +100,8 @@ private:
 // Epoll服务器类
 class EpollServer {
 public:
-    EpollServer(int port, int max_events = 64) : port(port), max_events(max_events), epoll_events(max_events) {
+    EpollServer(int port, int max_events = 64)
+        : port(port), max_events(max_events), epoll_events(max_events) {
         // 创建epoll实例
         epoll_fd = epoll_create1(0);
         if (epoll_fd == -1) die("epoll_create1");
@@ -108,7 +111,8 @@ public:
         if (listen_fd == -1) die("socket");
 
         int opt = 1;
-        if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) die("setsockopt");
+        if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+            die("setsockopt");
 
         set_nonblocking(listen_fd);
 
@@ -157,7 +161,8 @@ public:
     // 等待IO事件的可等待对象
     class IoAwaiter {
     public:
-        IoAwaiter(EpollServer& server, std::shared_ptr<IoEvent> event) : server(server), event(event) {}
+        IoAwaiter(EpollServer& server, std::shared_ptr<IoEvent> event)
+            : server(server), event(event) {}
 
         bool await_ready() { return event->ready; }
 
@@ -261,7 +266,7 @@ public:
     }
 
     // 运行服务器的主循环
-    void run() {
+    void Run() {
         // 启动接受连接的协程
         tasks.push_back(accept_connections());
 
@@ -297,7 +302,8 @@ public:
 
                             if (result > 0) {
                                 // 读取成功，打印接收到的数据
-                                std::cout << "Received " << result << " bytes from fd " << fd << std::endl;
+                                std::cout << "Received " << result << " bytes from fd " << fd
+                                          << std::endl;
                                 buffer[result] = '\0';  // 确保以null结尾
                                 std::cout << "Data: " << buffer << std::endl;
 
@@ -348,7 +354,7 @@ int main() {
     EpollServer server(8080);
 
     // 运行服务器
-    server.run();
+    server.Run();
 
     return 0;
 }

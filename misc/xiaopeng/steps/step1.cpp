@@ -1,8 +1,9 @@
 #include <chrono>
 #include <coroutine>
+
 #include "debug.hpp"
 
-struct RepeatAwaiter // awaiter(原始指针) / awaitable(operator->)
+struct RepeatAwaiter  // awaiter(原始指针) / awaitable(operator->)
 {
     bool await_ready() const noexcept { return false; }
 
@@ -16,34 +17,24 @@ struct RepeatAwaiter // awaiter(原始指针) / awaitable(operator->)
     void await_resume() const noexcept {}
 };
 
-struct RepeatAwaitable // awaitable(operator->)
+struct RepeatAwaitable  // awaitable(operator->)
 {
-    RepeatAwaiter operator co_await() {
-        return RepeatAwaiter();
-    }
+    RepeatAwaiter operator co_await() { return RepeatAwaiter(); }
 };
 
 struct Promise {
-    auto initial_suspend() {
-        return std::suspend_always();
-    }
+    auto initial_suspend() { return std::suspend_always(); }
 
-    auto final_suspend() noexcept {
-        return std::suspend_always();
-    }
+    auto final_suspend() noexcept { return std::suspend_always(); }
 
-    void unhandled_exception() {
-        throw;
-    }
+    void unhandled_exception() { throw; }
 
     auto yield_value(int ret) {
         mRetValue = ret;
         return RepeatAwaiter();
     }
 
-    void return_void() {
-        mRetValue = 0;
-    }
+    void return_void() { mRetValue = 0; }
 
     std::coroutine_handle<Promise> get_return_object() {
         return std::coroutine_handle<Promise>::from_promise(*this);
@@ -55,8 +46,7 @@ struct Promise {
 struct Task {
     using promise_type = Promise;
 
-    Task(std::coroutine_handle<promise_type> coroutine)
-        : mCoroutine(coroutine) {}
+    Task(std::coroutine_handle<promise_type> coroutine) : mCoroutine(coroutine) {}
 
     std::coroutine_handle<promise_type> mCoroutine;
 };
@@ -78,8 +68,7 @@ int main() {
     debug(), "main调用完了hello";
     while (!t.mCoroutine.done()) {
         t.mCoroutine.resume();
-        debug(), "main得到hello结果为",
-            t.mCoroutine.promise().mRetValue;
+        debug(), "main得到hello结果为", t.mCoroutine.promise().mRetValue;
     }
     return 0;
 }

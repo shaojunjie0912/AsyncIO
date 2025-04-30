@@ -42,10 +42,10 @@ struct Stream : NonCopyable {
           write_awaiter_{std::move(other.write_awaiter_)},
           sock_info_{other.sock_info_} {}
 
-    ~Stream() { close(); }
+    ~Stream() { Close(); }
 
 public:
-    void close() {
+    void Close() {
         read_awaiter_.destroy();
         write_awaiter_.destroy();
         if (read_fd_ > 0) {
@@ -58,9 +58,9 @@ public:
         write_fd_ = -1;
     }
 
-    Task<Buffer> read(ssize_t sz = -1) {
+    Task<Buffer> Read(ssize_t sz = -1) {
         if (sz < 0) {
-            co_return co_await read_until_eof();
+            co_return co_await ReadUntilEof();
         }
 
         Buffer result(sz, 0);
@@ -73,8 +73,9 @@ public:
         co_return result;
     }
 
-    Task<> write(const Buffer& buf) {
-        auto& loop = get_event_loop();
+    Task<> Write(const Buffer& buf) {
+        auto& loop = GetEventLoop();  // TODO: 没使用?
+
         ssize_t total_write = 0;
         while (total_write < buf.size()) {
             // FIXME: how to handle write event?
@@ -91,8 +92,8 @@ public:
     const sockaddr_storage& get_sock_info() const { return sock_info_; }
 
 private:
-    Task<Buffer> read_until_eof() {
-        auto& loop = get_event_loop();
+    Task<Buffer> ReadUntilEof() {
+        auto& loop = GetEventLoop();  // TODO: 没使用?
 
         Buffer result(chunk_size, 0);
         int current_read = 0;
@@ -117,20 +118,20 @@ private:
     int write_fd_{-1};
     Event read_event_{.fd = read_fd_, .flags = Event::EVENT_READ};
     Event write_event_{.fd = write_fd_, .flags = Event::EVENT_WRITE};
-    EventLoop::WaitEventAwaiter read_awaiter_{get_event_loop().wait_event(read_event_)};
-    EventLoop::WaitEventAwaiter write_awaiter_{get_event_loop().wait_event(write_event_)};
+    EventLoop::WaitEventAwaiter read_awaiter_{GetEventLoop().WaitEvent(read_event_)};
+    EventLoop::WaitEventAwaiter write_awaiter_{GetEventLoop().WaitEvent(write_event_)};
     sockaddr_storage sock_info_{};
     constexpr static size_t chunk_size = 4096;
 };
 
-inline const void* get_in_addr(const sockaddr* sa) {
+inline const void* GetInAddr(const sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         return &reinterpret_cast<const sockaddr_in*>(sa)->sin_addr;
     }
     return &reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr;
 }
 
-inline uint16_t get_in_port(const sockaddr* sa) {
+inline uint16_t GetInPort(const sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         return ntohs(reinterpret_cast<const sockaddr_in*>(sa)->sin_port);
     }

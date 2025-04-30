@@ -1,18 +1,20 @@
-#include "co_async/debug.hpp"
-#include "co_async/task.hpp"
-#include "co_async/timer_loop.hpp"
-#include "co_async/when_any.hpp"
-#include "co_async/when_all.hpp"
-#include "co_async/and_then.hpp"
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+#include <cerrno>
 #include <cstring>
 #include <source_location>
 #include <system_error>
-#include <cerrno>
-#include <sys/epoll.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <thread>
+
+#include "co_async/and_then.hpp"
+#include "co_async/debug.hpp"
+#include "co_async/task.hpp"
+#include "co_async/timer_loop.hpp"
+#include "co_async/when_all.hpp"
+#include "co_async/when_any.hpp"
 
 using namespace std::chrono_literals;
 
@@ -48,9 +50,7 @@ struct EpollLoop {
         checkError(epoll_ctl(mEpoll, EPOLL_CTL_ADD, promise.mFileNo, &event));
     }
 
-    void removeListener(int fileNo) {
-        checkError(epoll_ctl(mEpoll, EPOLL_CTL_DEL, fileNo, NULL));
-    }
+    void removeListener(int fileNo) { checkError(epoll_ctl(mEpoll, EPOLL_CTL_DEL, fileNo, NULL)); }
 
     void tryRun(int timeout) {
         int res = checkError(epoll_wait(mEpoll, mEventBuf, std::size(mEventBuf), timeout));
@@ -62,9 +62,7 @@ struct EpollLoop {
     }
 
     EpollLoop &operator=(EpollLoop &&) = delete;
-    ~EpollLoop() {
-        close(mEpoll);
-    }
+    ~EpollLoop() { close(mEpoll); }
 
     int mEpoll = checkError(epoll_create1(0));
     struct epoll_event mEventBuf[64];
@@ -77,12 +75,9 @@ EpollFilePromise::~EpollFilePromise() {
 }
 
 struct EpollFileAwaiter {
-    bool await_ready() const noexcept {
-        return false;
-    }
+    bool await_ready() const noexcept { return false; }
 
-    void
-    await_suspend(std::coroutine_handle<EpollFilePromise> coroutine) const {
+    void await_suspend(std::coroutine_handle<EpollFilePromise> coroutine) const {
         auto &promise = coroutine.promise();
         promise.mLoop = &mLoop;
         promise.mFileNo = mFileNo;
@@ -99,12 +94,11 @@ struct EpollFileAwaiter {
     uint32_t mEvents;
 };
 
-inline Task<void, EpollFilePromise>
-wait_file(EpollLoop &loop, int fileNo, uint32_t events) {
+inline Task<void, EpollFilePromise> wait_file(EpollLoop &loop, int fileNo, uint32_t events) {
     co_await EpollFileAwaiter(loop, fileNo, events | EPOLLONESHOT);
 }
 
-}
+}  // namespace co_async
 
 co_async::EpollLoop epollLoop;
 co_async::TimerLoop timerLoop;
@@ -127,8 +121,7 @@ co_async::Task<std::string> reader(int fileNo) {
             s.resize(exist + len);
             break;
         }
-        if (chunk < 65536)
-            chunk *= 4;
+        if (chunk < 65536) chunk *= 4;
     }
     co_return s;
 }
@@ -138,7 +131,7 @@ co_async::Task<void> async_main() {
     while (true) {
         auto v = co_await when_any(reader(STDIN_FILENO), reader(file));
         std::string s;
-        std::visit([&] (std::string const &v) { s = v; }, v);
+        std::visit([&](std::string const &v) { s = v; }, v);
         debug(), "读到了", s;
         if (s == "quit\n") break;
     }

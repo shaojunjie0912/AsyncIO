@@ -30,20 +30,20 @@ public:
 
     // 延迟一段时间后再调度
     template <typename Rep, typename Period>
-    void call_later(std::chrono::duration<Rep, Period> delay, Handle& callback) {
-        call_at(time() + duration_cast<MSDuration>(delay), callback);
+    void CallLater(std::chrono::duration<Rep, Period> delay, Handle& callback) {
+        CallAt(time() + duration_cast<MSDuration>(delay), callback);
     }
 
     // 取消调度
-    void cancel_handle(Handle& handle) {
-        handle.set_state(Handle::UNSCHEDULED);
-        cancelled_.insert(handle.get_handle_id());
+    void CancelHandle(Handle& handle) {
+        handle.SetState(Handle::UNSCHEDULED);
+        cancelled_.insert(handle.GetHandleId());
     }
 
     // 立即调度 (加入 ready_)
-    void call_soon(Handle& handle) {
-        handle.set_state(Handle::SCHEDULED);
-        ready_.push({handle.get_handle_id(), &handle});
+    void CallSoon(Handle& handle) {
+        handle.SetState(Handle::SCHEDULED);
+        ready_.push({handle.GetHandleId(), &handle});
     }
 
     struct WaitEventAwaiter {
@@ -56,14 +56,14 @@ public:
 
         template <typename Promise>
         constexpr void await_suspend(std::coroutine_handle<Promise> handle) noexcept {
-            handle.promise().set_state(Handle::SUSPEND);  // 设置挂起状态
-            event_.handle_info = {.id = handle.promise().get_handle_id(),
+            handle.promise().SetState(Handle::SUSPEND);  // 设置挂起状态
+            event_.handle_info = {.id = handle.promise().GetHandleId(),
                                   // NOTE: 协程的 Promise 对象也是 Handle,
                                   // 因此这里将其注册为事件回调
-                                  // 在 run_once() 中事件发生时会调用 run() 方法
+                                  // 在 RunOnce() 中事件发生时会调用 Run() 方法
                                   .handle = &handle.promise()};
             if (!registered_) {
-                selector_.register_event(event_);  // 注册监听事件
+                selector_.RegisterEvent(event_);  // 注册监听事件
                 registered_ = true;
             }
         }
@@ -75,7 +75,7 @@ public:
         // 移除注册事件
         void destroy() noexcept {
             if (registered_) {
-                selector_.remove_event(event_);
+                selector_.RemoveEvent(event_);
                 registered_ = false;
             }
         }
@@ -89,35 +89,35 @@ public:
 
     // 等待特定的 IO 事件
     [[nodiscard]]
-    auto wait_event(const Event& event) {
+    auto WaitEvent(const Event& event) {
         return WaitEventAwaiter{selector_, event};
     }
 
     // 运行事件循环直到所有任务完成
-    void run_until_complete();
+    void RunUntilComplete();
 
 private:
     // 判断事件循环是否停止
-    bool is_stop() { return schedule_.empty() && ready_.empty() && selector_.is_stop(); }
+    bool IsStop() { return schedule_.empty() && ready_.empty() && selector_.IsStop(); }
 
     // 清理已取消的定时任务
-    void cleanup_delayed_call();
+    void CleanupDelayedCall();
 
     // 在指定时间点执行任务, 加入定时任务堆
     // when: 希望回调被调度的相对时间
     // callback: 回调
     template <typename Rep, typename Period>
-    void call_at(std::chrono::duration<Rep, Period> when, Handle& callback) {
-        callback.set_state(Handle::SCHEDULED);  // 设置被调度状态
+    void CallAt(std::chrono::duration<Rep, Period> when, Handle& callback) {
+        callback.SetState(Handle::SCHEDULED);  // 设置被调度状态
         // 加入定时任务队
         schedule_.emplace_back(duration_cast<MSDuration>(when),
-                               HandleInfo{callback.get_handle_id(), &callback});
+                               HandleInfo{callback.GetHandleId(), &callback});
         // 保证最小堆的堆顶是最早到期()的任务
         std::ranges::push_heap(schedule_, std::ranges::greater{}, &TimerHandle::first);
     }
 
     // 执行事件循环的一次迭代
-    void run_once();
+    void RunOnce();
 
 private:
     using TimerHandle = std::pair<MSDuration, HandleInfo>;  // <过期时间, 回调信息>
@@ -129,6 +129,6 @@ private:
 };
 
 // 获取 EventLoop (线程安全单例)
-EventLoop& get_event_loop();
+EventLoop& GetEventLoop();
 
 }  // namespace cutecoro

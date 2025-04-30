@@ -76,7 +76,7 @@ public:
     }
 
     // 运行调度器事件循环
-    void run() {
+    void Run() {
         running_ = true;
         const int MAX_EVENTS = 64;
         struct epoll_event events[MAX_EVENTS];
@@ -172,7 +172,8 @@ Task handle_client(int client_fd) {
                 } else {
                     // 处理接收到的数据
                     buffer[bytes_read] = '\0';
-                    std::cout << "从客户端接收到 " << bytes_read << " 字节: " << buffer << std::endl;
+                    std::cout << "从客户端接收到 " << bytes_read << " 字节: " << buffer
+                              << std::endl;
 
                     // 回显数据给客户端
                     co_await AwaitableFd<EPOLLOUT | EPOLLET>(client_fd);
@@ -210,8 +211,8 @@ Task accept_connections(int server_fd) {
 
             char client_ip[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-            std::cout << "新连接来自 " << client_ip << ":" << ntohs(client_addr.sin_port) << " (fd: " << client_fd
-                      << ")" << std::endl;
+            std::cout << "新连接来自 " << client_ip << ":" << ntohs(client_addr.sin_port)
+                      << " (fd: " << client_fd << ")" << std::endl;
 
             // 设置客户端socket为非阻塞
             set_nonblocking(client_fd);
@@ -266,7 +267,7 @@ int main() {
         accept_connections(server_fd);
 
         // 运行调度器
-        g_scheduler.run();
+        g_scheduler.Run();
 
         close(server_fd);
     } catch (const std::exception& e) {

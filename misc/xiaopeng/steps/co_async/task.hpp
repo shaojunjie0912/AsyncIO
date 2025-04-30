@@ -66,7 +66,8 @@ template <class T = void, class P = Promise<T>>
 struct [[nodiscard]] Task {
     using promise_type = P;
 
-    Task(std::coroutine_handle<promise_type> coroutine = nullptr) noexcept : mCoroutine(coroutine) {}
+    Task(std::coroutine_handle<promise_type> coroutine = nullptr) noexcept
+        : mCoroutine(coroutine) {}
 
     Task(Task &&that) noexcept : mCoroutine(that.mCoroutine) { that.mCoroutine = nullptr; }
 
@@ -79,7 +80,8 @@ struct [[nodiscard]] Task {
     struct Awaiter {
         bool await_ready() const noexcept { return false; }
 
-        std::coroutine_handle<promise_type> await_suspend(std::coroutine_handle<> coroutine) const noexcept {
+        std::coroutine_handle<promise_type> await_suspend(
+            std::coroutine_handle<> coroutine) const noexcept {
             promise_type &promise = mCoroutine.promise();
             promise.mPrevious = coroutine;
             return mCoroutine;
@@ -102,7 +104,7 @@ template <class Loop, class T, class P>
 T run_task(Loop &loop, Task<T, P> const &t) {
     auto a = t.operator co_await();
     a.await_suspend(std::noop_coroutine()).resume();
-    while (loop.run());
+    while (loop.Run());
     return a.await_resume();
 }
 

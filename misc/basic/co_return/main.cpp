@@ -34,8 +34,8 @@ struct CoRet {
         // 返回值决定了协程是否在完成时挂起,
         // NOTE: 如果不 suspend_always 那么协程资源就会被销毁
         // 再次访问会导致未定义行为
-        // 返回 suspend_always 协程完成后会挂起, 保持其状态, 直到显式调用 coroutine_handle::destroy() 销毁
-        // 返回 suspend_never 协程完成后立即自动销毁, 释放所有资源
+        // 返回 suspend_always 协程完成后会挂起, 保持其状态, 直到显式调用
+        // coroutine_handle::destroy() 销毁 返回 suspend_never 协程完成后立即自动销毁, 释放所有资源
         suspend_always final_suspend() noexcept { return {}; }
     };
 };
@@ -82,7 +82,9 @@ int main() {
     // resume from co_await
     ret.h_.resume();  // 从 co_await 继续执行协程, 经过 co_yield -> yield_value 后执行权还给 main
     cout << "[main]: answer is "
-         << ((ret.h_.promise().out_ == 1) ? "larger" : ((ret.h_.promise().out_ == 0) ? "the same" : "smaller")) << endl;
+         << ((ret.h_.promise().out_ == 1) ? "larger"
+                                          : ((ret.h_.promise().out_ == 0) ? "the same" : "smaller"))
+         << endl;
     // resume from co_yield
     ret.h_.resume();
     if (ret.h_.done()) {

@@ -49,7 +49,7 @@ void test_tasks() {
         debug("error occurred", e.what());
     });
     try {
-        auto i = simpleTask.get_result();
+        auto i = simpleTask.GetResult();
         debug("simple task end from get: ", i);
     } catch (std::exception &e) {
         debug("error: ", e.what());

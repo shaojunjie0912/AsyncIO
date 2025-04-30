@@ -1,9 +1,9 @@
 #include <chrono>
 #include <coroutine>
+
 #include "debug.hpp"
 
-struct RepeatAwaiter
-{
+struct RepeatAwaiter {
     bool await_ready() const noexcept { return false; }
 
     std::coroutine_handle<> await_suspend(std::coroutine_handle<> coroutine) const noexcept {
@@ -32,26 +32,18 @@ struct PreviousAwaiter {
 };
 
 struct Promise {
-    auto initial_suspend() {
-        return std::suspend_always();
-    }
+    auto initial_suspend() { return std::suspend_always(); }
 
-    auto final_suspend() noexcept {
-        return PreviousAwaiter(mPrevious);
-    }
+    auto final_suspend() noexcept { return PreviousAwaiter(mPrevious); }
 
-    void unhandled_exception() {
-        throw;
-    }
+    void unhandled_exception() { throw; }
 
     auto yield_value(int ret) {
         mRetValue = ret;
         return std::suspend_always();
     }
 
-    void return_value(int ret) {
-        mRetValue = ret;
-    }
+    void return_value(int ret) { mRetValue = ret; }
 
     std::coroutine_handle<Promise> get_return_object() {
         return std::coroutine_handle<Promise>::from_promise(*this);
@@ -64,14 +56,11 @@ struct Promise {
 struct Task {
     using promise_type = Promise;
 
-    Task(std::coroutine_handle<promise_type> coroutine)
-        : mCoroutine(coroutine) {}
+    Task(std::coroutine_handle<promise_type> coroutine) : mCoroutine(coroutine) {}
 
     Task(Task &&) = delete;
 
-    ~Task() {
-        mCoroutine.destroy();
-    }
+    ~Task() { mCoroutine.destroy(); }
 
     struct Awaiter {
         bool await_ready() const { return false; }
@@ -86,9 +75,7 @@ struct Task {
         std::coroutine_handle<promise_type> mCoroutine;
     };
 
-    auto operator co_await() const {
-        return Awaiter(mCoroutine);
-    }
+    auto operator co_await() const { return Awaiter(mCoroutine); }
 
     std::coroutine_handle<promise_type> mCoroutine;
 };
@@ -107,11 +94,10 @@ Task hello() {
 int main() {
     debug(), "main即将调用hello";
     Task t = hello();
-    debug(), "main调用完了hello"; // 其实只创建了task对象，并没有真正开始执行
+    debug(), "main调用完了hello";  // 其实只创建了task对象，并没有真正开始执行
     while (!t.mCoroutine.done()) {
         t.mCoroutine.resume();
-        debug(), "main得到hello结果为",
-            t.mCoroutine.promise().mRetValue;
+        debug(), "main得到hello结果为", t.mCoroutine.promise().mRetValue;
     }
     return 0;
 }

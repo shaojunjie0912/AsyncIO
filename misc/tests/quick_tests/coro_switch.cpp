@@ -9,7 +9,9 @@ class Task {
 public:
     // 协程Promise类型，管理协程状态
     struct promise_type {
-        Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this)}; }
+        Task get_return_object() {
+            return Task{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
         std::suspend_never initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void return_void() {}

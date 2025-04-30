@@ -22,7 +22,9 @@ constexpr int kMaxEvents{4};
 // 协程任务类型
 struct Task {
     struct promise_type {
-        Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this)}; }
+        Task get_return_object() {
+            return Task{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
         std::suspend_never initial_suspend() { return {}; }
         std::suspend_never final_suspend() noexcept { return {}; }
         void return_void() {}
@@ -64,7 +66,8 @@ public:
         EPollScheduler& scheduler;
         std::coroutine_handle<> handle;
 
-        EPollAwaiter(int fd, EPollScheduler& scheduler) : fd(fd), scheduler(scheduler), handle(nullptr) {}
+        EPollAwaiter(int fd, EPollScheduler& scheduler)
+            : fd(fd), scheduler(scheduler), handle(nullptr) {}
 
         bool await_ready() const { return false; }
 
@@ -109,7 +112,7 @@ public:
     EPollAwaiter waitEvent(int fd) { return EPollAwaiter(fd, *this); }
 
     // 运行事件循环
-    void run() {
+    void Run() {
         epoll_event events[kMaxEvents];
 
         while (true) {
@@ -172,7 +175,7 @@ int main() {
 
     // 运行事件循环
     std::cout << "启动协程调度器，请输入文本..." << std::endl;
-    scheduler.run();
+    scheduler.Run();
 
     return 0;
 }

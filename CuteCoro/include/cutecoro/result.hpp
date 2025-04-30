@@ -9,20 +9,20 @@ namespace cutecoro {
 // 结果类封装
 template <typename T>
 struct Result {
-    // 判断是否有值(variant 同名 optional 的函数)
-    constexpr bool has_value() const noexcept {
+    // 判断 Result 是否有值
+    constexpr bool HasValue() const noexcept {
         // nullptr -> 不是 monostate -> 有别的有效值
         return std::get_if<std::monostate>(&result_) == nullptr;
     }
 
-    // 设置 result_ 值
+    // 设置 Result 值
     template <typename R>  // NOTE: 加了一个模板参数 R, 这样 R -> T
-    constexpr void set_value(R&& value) noexcept {
+    constexpr void SetValue(R&& value) noexcept {
         result_.template emplace<T>(std::forward<R>(value));
     }
 
     // 设置 result_ 异常
-    void set_exception(std::exception_ptr exception) noexcept { result_ = exception; }
+    void SetException(std::exception_ptr exception) noexcept { result_ = exception; }
 
     // 左值对象调用 result() 会拷贝 result_<T> 的值
     constexpr T result() & {
@@ -50,20 +50,20 @@ struct Result {
     // NOTE: 给 promise_type 继承用
     template <typename R>
     constexpr void return_value(R&& value) noexcept {
-        return set_value(std::forward<R>(value));
+        return SetValue(std::forward<R>(value));
     }
 
     void unhandled_exception() noexcept { result_ = std::current_exception(); }
     // ---------------------------------------
 
 private:
-    std::variant<std::monostate, T, std::exception_ptr> result_;
+    std::variant<std::monostate, T, std::exception_ptr> result_;  // TODO: variant
 };
 
 // 结果类 void 特化
 template <>
 struct Result<void> {
-    constexpr bool has_value() const noexcept { return result_.has_value(); }
+    constexpr bool HasValue() const noexcept { return result_.has_value(); }
 
     void result() {
         if (result_.has_value() && *result_ != nullptr) {
@@ -71,7 +71,7 @@ struct Result<void> {
         }
     }
 
-    void set_exception(std::exception_ptr exception) noexcept { result_ = exception; }
+    void SetException(std::exception_ptr exception) noexcept { result_ = exception; }
 
     // ---------------------------------------
     // NOTE: 给 promise_type 继承用
@@ -83,7 +83,7 @@ struct Result<void> {
     // ---------------------------------------
 
 private:
-    std::optional<std::exception_ptr> result_;
+    std::optional<std::exception_ptr> result_;  // TODO: optional
 };
 
 }  // namespace cutecoro

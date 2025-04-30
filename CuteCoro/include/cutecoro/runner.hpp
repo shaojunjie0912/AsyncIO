@@ -7,14 +7,14 @@
 namespace cutecoro {
 
 template <concepts::Future Fut>
-decltype(auto) run(Fut&& main) {
-    // ScheduledTask 构造函数会调用句柄的 schedule()
+decltype(auto) Run(Fut&& main) {
+    // ScheduledTask 构造函数会调用句柄的 Schedule()
     auto t = schedule_task(std::forward<Fut>(main));
-    get_event_loop().run_until_complete();
+    GetEventLoop().RunUntilComplete();
     if constexpr (std::is_lvalue_reference_v<Fut&&>) {
-        return t.get_result();
+        return t.GetResult();
     } else {
-        return std::move(t).get_result();
+        return std::move(t).GetResult();
     }
 }
 

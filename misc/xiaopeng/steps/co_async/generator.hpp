@@ -44,7 +44,9 @@ struct GeneratorPromise {
 
     T result() { return mResult.moveValue(); }
 
-    auto get_return_object() { return std::coroutine_handle<GeneratorPromise>::from_promise(*this); }
+    auto get_return_object() {
+        return std::coroutine_handle<GeneratorPromise>::from_promise(*this);
+    }
 
     std::coroutine_handle<> mPrevious;
     bool mFinal = false;
@@ -84,7 +86,9 @@ struct GeneratorPromise<T &> {
 
     T &result() { return *mResult; }
 
-    auto get_return_object() { return std::coroutine_handle<GeneratorPromise>::from_promise(*this); }
+    auto get_return_object() {
+        return std::coroutine_handle<GeneratorPromise>::from_promise(*this);
+    }
 
     std::coroutine_handle<> mPrevious{};
     T *mResult;
@@ -97,9 +101,12 @@ template <class T, class P = GeneratorPromise<T>>
 struct [[nodiscard]] Generator {
     using promise_type = P;
 
-    Generator(std::coroutine_handle<promise_type> coroutine = nullptr) noexcept : mCoroutine(coroutine) {}
+    Generator(std::coroutine_handle<promise_type> coroutine = nullptr) noexcept
+        : mCoroutine(coroutine) {}
 
-    Generator(Generator &&that) noexcept : mCoroutine(that.mCoroutine) { that.mCoroutine = nullptr; }
+    Generator(Generator &&that) noexcept : mCoroutine(that.mCoroutine) {
+        that.mCoroutine = nullptr;
+    }
 
     Generator &operator=(Generator &&that) noexcept { std::swap(mCoroutine, that.mCoroutine); }
 
@@ -110,7 +117,8 @@ struct [[nodiscard]] Generator {
     struct Awaiter {
         bool await_ready() const noexcept { return false; }
 
-        std::coroutine_handle<promise_type> await_suspend(std::coroutine_handle<> coroutine) const noexcept {
+        std::coroutine_handle<promise_type> await_suspend(
+            std::coroutine_handle<> coroutine) const noexcept {
             mCoroutine.promise().mPrevious = coroutine;
             return mCoroutine;
         }
@@ -166,7 +174,7 @@ struct GeneratorIterator {
 
     GeneratorIterator &operator++() {
         mAwaiter.mCoroutine.resume();
-        mLoop.run();
+        mLoop.Run();
         mResult = mAwaiter.await_resume();
         return *this;
     }

@@ -60,7 +60,9 @@ struct Promise {
         return ret;
     }
 
-    std::coroutine_handle<Promise> get_return_object() { return std::coroutine_handle<Promise>::from_promise(*this); }
+    std::coroutine_handle<Promise> get_return_object() {
+        return std::coroutine_handle<Promise>::from_promise(*this);
+    }
 
     std::coroutine_handle<> mPrevious{};
     std::exception_ptr mException{};
@@ -89,7 +91,9 @@ struct Promise<void> {
         }
     }
 
-    std::coroutine_handle<Promise> get_return_object() { return std::coroutine_handle<Promise>::from_promise(*this); }
+    std::coroutine_handle<Promise> get_return_object() {
+        return std::coroutine_handle<Promise>::from_promise(*this);
+    }
 
     std::coroutine_handle<> mPrevious{};
     std::exception_ptr mException{};
@@ -112,7 +116,8 @@ struct Task {
     struct Awaiter {
         bool await_ready() const noexcept { return false; }
 
-        std::coroutine_handle<promise_type> await_suspend(std::coroutine_handle<> coroutine) const noexcept {
+        std::coroutine_handle<promise_type> await_suspend(
+            std::coroutine_handle<> coroutine) const noexcept {
             mCoroutine.promise().mPrevious = coroutine;
             return mCoroutine;
         }
@@ -138,14 +143,17 @@ struct Loop {
         std::chrono::system_clock::time_point expireTime;
         std::coroutine_handle<> coroutine;
 
-        bool operator<(TimerEntry const &that) const noexcept { return expireTime > that.expireTime; }
+        bool operator<(TimerEntry const &that) const noexcept {
+            return expireTime > that.expireTime;
+        }
     };
 
     std::priority_queue<TimerEntry> mTimerHeap;
 
     void addTask(std::coroutine_handle<> coroutine) { mReadyQueue.push_front(coroutine); }
 
-    void addTimer(std::chrono::system_clock::time_point expireTime, std::coroutine_handle<> coroutine) {
+    void addTimer(std::chrono::system_clock::time_point expireTime,
+                  std::coroutine_handle<> coroutine) {
         mTimerHeap.push({expireTime, coroutine});
     }
 
@@ -180,7 +188,9 @@ Loop &getLoop() {
 struct SleepAwaiter {
     bool await_ready() const noexcept { return false; }
 
-    void await_suspend(std::coroutine_handle<> coroutine) const { getLoop().addTimer(mExpireTime, coroutine); }
+    void await_suspend(std::coroutine_handle<> coroutine) const {
+        getLoop().addTimer(mExpireTime, coroutine);
+    }
 
     void await_resume() const noexcept {}
 

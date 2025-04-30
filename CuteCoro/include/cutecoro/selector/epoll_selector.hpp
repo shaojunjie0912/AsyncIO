@@ -18,7 +18,7 @@ struct EpollSelector {
     }
 
     // 注册事件
-    void register_event(Event const& event) {
+    void RegisterEvent(Event const& event) {
         epoll_event ev;
         ev.events = event.flags;
         // 存储事件发生时要执行的任务协程句柄
@@ -29,7 +29,7 @@ struct EpollSelector {
     }
 
     // 移除事件
-    void remove_event(const Event& event) {
+    void RemoveEvent(const Event& event) {
         epoll_event ev;
         ev.events = event.flags;
         if (epoll_ctl(epfd_, EPOLL_CTL_DEL, event.fd, &ev) == 0) {
@@ -38,7 +38,7 @@ struct EpollSelector {
     }
 
     // 就是抽象的 poll 操作
-    std::vector<Event> select(int timeout /* ms */) {
+    std::vector<Event> Select(int timeout /* ms */) {
         // errno = 0;
         std::vector<epoll_event> events;
         events.resize(register_event_count_);
@@ -64,7 +64,7 @@ struct EpollSelector {
         }
     }
 
-    bool is_stop() { return register_event_count_ == 1; }
+    bool IsStop() { return register_event_count_ == 1; }
 
 private:
     int epfd_;                     // epoll 文件描述符

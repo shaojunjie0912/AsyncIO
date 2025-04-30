@@ -1,17 +1,19 @@
 #pragma once
 
-#include <coroutine>
-#include <chrono>
-#include <cstdint>
-#include <utility>
-#include <optional>
-#include <string>
-#include <string_view>
-#include <span>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
-#include "task.hpp"
+
+#include <chrono>
+#include <coroutine>
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <utility>
+
 #include "error_handling.hpp"
+#include "task.hpp"
 
 namespace co_async {
 
@@ -32,18 +34,13 @@ struct EpollFilePromise : Promise<EpollEventMask> {
 struct EpollLoop {
     inline bool addListener(EpollFilePromise &promise, int ctl);
     inline void removeListener(int fileNo);
-    inline bool run(std::optional<std::chrono::system_clock::duration> timeout =
-                        std::nullopt);
+    inline bool Run(std::optional<std::chrono::system_clock::duration> timeout = std::nullopt);
 
-    bool hasEvent() const noexcept {
-        return mCount != 0;
-    }
+    bool hasEvent() const noexcept { return mCount != 0; }
 
     EpollLoop &operator=(EpollLoop &&) = delete;
 
-    ~EpollLoop() {
-        close(mEpoll);
-    }
+    ~EpollLoop() { close(mEpoll); }
 
     int mEpoll = checkError(epoll_create1(0));
     std::size_t mCount = 0;
@@ -52,9 +49,7 @@ struct EpollLoop {
 };
 
 struct EpollFileAwaiter {
-    bool await_ready() const noexcept {
-        return false;
-    }
+    bool await_ready() const noexcept { return false; }
 
     void await_suspend(std::coroutine_handle<EpollFilePromise> coroutine) {
         auto &promise = coroutine.promise();
@@ -65,9 +60,7 @@ struct EpollFileAwaiter {
         }
     }
 
-    EpollEventMask await_resume() const noexcept {
-        return mResumeEvents;
-    }
+    EpollEventMask await_resume() const noexcept { return mResumeEvents; }
 
     EpollLoop &mLoop;
     int mFileNo;
@@ -87,10 +80,8 @@ bool EpollLoop::addListener(EpollFilePromise &promise, int ctl) {
     event.events = promise.mAwaiter->mEvents;
     event.data.ptr = &promise;
     int res = epoll_ctl(mEpoll, ctl, promise.mAwaiter->mFileNo, &event);
-    if (res == -1)
-        return false;
-    if (ctl == EPOLL_CTL_ADD)
-        ++mCount;
+    if (res == -1) return false;
+    if (ctl == EPOLL_CTL_ADD) ++mCount;
     return true;
 }
 
@@ -99,8 +90,7 @@ void EpollLoop::removeListener(int fileNo) {
     --mCount;
 }
 
-bool EpollLoop::run(
-    std::optional<std::chrono::system_clock::duration> timeout) {
+bool EpollLoop::Run(std::optional<std::chrono::system_clock::duration> timeout) {
     while (!mQueue.empty()) {
         auto task = mQueue.back();
         mQueue.pop_back();
@@ -111,12 +101,9 @@ bool EpollLoop::run(
     }
     int timeoutInMs = -1;
     if (timeout) {
-        timeoutInMs =
-            std::chrono::duration_cast<std::chrono::milliseconds>(*timeout)
-                .count();
+        timeoutInMs = std::chrono::duration_cast<std::chrono::milliseconds>(*timeout).count();
     }
-    int res = checkError(
-        epoll_wait(mEpoll, mEventBuf, std::size(mEventBuf), timeoutInMs));
+    int res = checkError(epoll_wait(mEpoll, mEventBuf, std::size(mEventBuf), timeoutInMs));
     for (int i = 0; i < res; i++) {
         auto &event = mEventBuf[i];
         auto &promise = *(EpollFilePromise *)event.data.ptr;
@@ -135,9 +122,7 @@ struct [[nodiscard]] AsyncFile {
 
     explicit AsyncFile(int fileNo) noexcept : mFileNo(fileNo) {}
 
-    AsyncFile(AsyncFile &&that) noexcept : mFileNo(that.mFileNo) {
-        that.mFileNo = -1;
-    }
+    AsyncFile(AsyncFile &&that) noexcept : mFileNo(that.mFileNo) { that.mFileNo = -1; }
 
     AsyncFile &operator=(AsyncFile &&that) noexcept {
         std::swap(mFileNo, that.mFileNo);
@@ -145,13 +130,10 @@ struct [[nodiscard]] AsyncFile {
     }
 
     ~AsyncFile() {
-        if (mFileNo != -1)
-            close(mFileNo);
+        if (mFileNo != -1) close(mFileNo);
     }
 
-    int fileNo() const noexcept {
-        return mFileNo;
-    }
+    int fileNo() const noexcept { return mFileNo; }
 
     int releaseOwnership() noexcept {
         int ret = mFileNo;
@@ -168,24 +150,20 @@ private:
     int mFileNo;
 };
 
-inline Task<EpollEventMask, EpollFilePromise>
-wait_file_event(EpollLoop &loop, AsyncFile &file, EpollEventMask events) {
+inline Task<EpollEventMask, EpollFilePromise> wait_file_event(EpollLoop &loop, AsyncFile &file,
+                                                              EpollEventMask events) {
     co_return co_await EpollFileAwaiter(loop, file.fileNo(), events);
 }
 
 inline std::size_t readFileSync(AsyncFile &file, std::span<char> buffer) {
-    return checkErrorNonBlock(
-        read(file.fileNo(), buffer.data(), buffer.size()));
+    return checkErrorNonBlock(read(file.fileNo(), buffer.data(), buffer.size()));
 }
 
-inline std::size_t writeFileSync(AsyncFile &file,
-                                 std::span<char const> buffer) {
-    return checkErrorNonBlock(
-        write(file.fileNo(), buffer.data(), buffer.size()));
+inline std::size_t writeFileSync(AsyncFile &file, std::span<char const> buffer) {
+    return checkErrorNonBlock(write(file.fileNo(), buffer.data(), buffer.size()));
 }
 
-inline Task<std::size_t> read_file(EpollLoop &loop, AsyncFile &file,
-                                   std::span<char> buffer) {
+inline Task<std::size_t> read_file(EpollLoop &loop, AsyncFile &file, std::span<char> buffer) {
     co_await wait_file_event(loop, file, EPOLLIN | EPOLLRDHUP);
     auto len = readFileSync(file, buffer);
     co_return len;
@@ -198,4 +176,4 @@ inline Task<std::size_t> write_file(EpollLoop &loop, AsyncFile &file,
     co_return len;
 }
 
-} // namespace co_async
+}  // namespace co_async
