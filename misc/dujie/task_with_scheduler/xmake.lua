@@ -1,5 +1,0 @@
-target("task_with_scheduler",function () 
-   set_kind("binary") 
-   add_files("**.cpp")
-   add_includedirs("include", { public = true})
-end)

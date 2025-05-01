@@ -22,7 +22,7 @@ public:
     decltype(auto) operator co_await() const&& noexcept { return task_.operator co_await(); }
 
     // 取消任务
-    void Cancel() { task_.destroy(); }
+    void Cancel() { task_.Destroy(); }
 
     // 左值调用 GetResult
     decltype(auto) GetResult() & { return task_.GetResult(); }

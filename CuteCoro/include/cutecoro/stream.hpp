@@ -110,10 +110,8 @@ public:
     }
 
     Task<> Write(const Buffer& buf) {
-        auto& loop = GetEventLoop();  // TODO: 没使用?
-
         ssize_t total_write = 0;
-        while (total_write < buf.size()) {
+        while (total_write < static_cast<ssize_t>(buf.size())) {
             // FIXME: how to handle write event?
             // co_await write_awaiter_;
             ssize_t sz = ::write(write_fd_, buf.data() + total_write, buf.size() - total_write);
@@ -129,8 +127,6 @@ public:
 
 private:
     Task<Buffer> ReadUntilEof() {
-        auto& loop = GetEventLoop();  // TODO: 没使用?
-
         Buffer result(chunk_size, 0);
         int current_read = 0;
         int total_read = 0;
@@ -140,7 +136,7 @@ private:
             if (current_read == -1) {
                 throw std::system_error(std::make_error_code(static_cast<std::errc>(errno)));
             }
-            if (current_read < chunk_size) {
+            if (current_read < static_cast<int>(chunk_size)) {
                 result.resize(total_read + current_read);
             }
             total_read += current_read;

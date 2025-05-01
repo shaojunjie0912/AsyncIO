@@ -63,9 +63,11 @@ struct CoroHandle : Handle {
     void Cancel();
 
     // TODO: CoroHandle 的 DumpBacktrace() 啥也不做?
-    virtual void DumpBacktrace(size_t depth = 0) const {};
+    // 纯虚函数: 打印回溯栈
+    virtual void DumpBacktrace(size_t depth = 0) const = 0;
 
 private:
+    // 虚函数: 获取帧信息
     virtual const std::source_location& GetFrameInfo() const;
 };
 

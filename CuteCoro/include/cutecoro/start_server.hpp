@@ -1,0 +1,121 @@
+#pragma once
+
+#include <fmt/core.h>
+#include <sys/types.h>
+
+#include <cutecoro/concepts/awaitable.hpp>
+#include <cutecoro/finally.hpp>
+#include <cutecoro/scheduled_task.hpp>
+#include <cutecoro/stream.hpp>
+#include <list>
+
+namespace cutecoro {
+
+namespace concepts {
+
+template <typename CONNECT_CB>
+concept ConnectCb = requires(CONNECT_CB cb) {
+    { cb(std::declval<Stream>()) } -> concepts::Awaitable;
+};
+
+}  // namespace concepts
+
+inline constexpr size_t max_connect_count = 16;
+
+template <concepts::ConnectCb CONNECT_CB>
+struct Server : NonCopyable {
+    Server(CONNECT_CB cb, int fd) : connect_cb_(cb), fd_(fd) {}
+
+    Server(Server&& other) : connect_cb_(other.connect_cb_), fd_{std::exchange(other.fd_, -1)} {}
+
+    ~Server() { Close(); }
+
+    Task<void> StartForever() {
+        Event ev{.fd = fd_, .flags = Event::Flags::EVENT_READ};
+        auto& loop = GetEventLoop();
+        auto ev_awaiter = loop.WaitEvent(ev);
+        std::list<ScheduledTask<Task<>>> connected;
+        while (true) {
+            sockaddr_storage remoteaddr{};
+            socklen_t addrlen = sizeof(remoteaddr);
+            co_await ev_awaiter;
+            int clientfd = ::accept(fd_, reinterpret_cast<sockaddr*>(&remoteaddr), &addrlen);
+            if (clientfd == -1) {
+                continue;
+            }
+            connected.emplace_back(schedule_task(connect_cb_(Stream{clientfd, remoteaddr})));
+            // garbage collect
+            clean_up_connected(connected);
+        }
+    }
+
+private:
+    void clean_up_connected(std::list<ScheduledTask<Task<>>>& connected) {
+        if (connected.size() < 100) [[likely]] {
+            return;
+        }
+        for (auto iter = connected.begin(); iter != connected.end();) {
+            if (iter->IsDone()) {
+                iter->GetResult();  //< consume result, such as throw exception
+                iter = connected.erase(iter);
+            } else {
+                ++iter;
+            }
+        }
+    }
+
+private:
+    void Close() {
+        if (fd_ > 0) {
+            ::close(fd_);
+        }
+        fd_ = -1;
+    }
+
+private:
+    [[no_unique_address]] CONNECT_CB connect_cb_;
+    int fd_{-1};
+};
+
+template <concepts::ConnectCb CONNECT_CB>
+Task<Server<CONNECT_CB>> StartServer(CONNECT_CB cb, std::string_view ip, uint16_t port) {
+    addrinfo hints{};
+    hints.ai_family = AF_UNSPEC;      // 不限制地址类型 (ipv4/6)
+    hints.ai_socktype = SOCK_STREAM;  // 只返回支持 TCP 协议的地址
+
+    addrinfo* server_info{nullptr};
+    auto service = std::to_string(port);
+    // TODO: getaddrinfo is a blocking api
+    if (int rv = getaddrinfo(ip.data(), service.c_str(), &hints, &server_info); rv != 0) {
+        throw std::system_error(std::make_error_code(std::errc::address_not_available));
+    }
+    finally { freeaddrinfo(server_info); };
+
+    int serverfd = -1;
+    for (auto p = server_info; p != nullptr; p = p->ai_next) {
+        if ((serverfd = ::socket(p->ai_family, p->ai_socktype | SOCK_NONBLOCK, p->ai_protocol)) ==
+            -1) {
+            continue;
+        }
+        socket::SetBlocking(serverfd, false);
+        int yes = 1;
+        // lose the pesky "address already in use" error message
+        setsockopt(serverfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+        if (bind(serverfd, p->ai_addr, p->ai_addrlen) == 0) {
+            break;
+        }
+        close(serverfd);
+        serverfd = -1;
+    }
+    if (serverfd == -1) {
+        throw std::system_error(std::make_error_code(std::errc::address_not_available));
+    }
+
+    if (listen(serverfd, max_connect_count) == -1) {
+        throw std::system_error(std::make_error_code(static_cast<std::errc>(errno)));
+    }
+
+    co_return Server{cb, serverfd};
+}
+
+}  // namespace cutecoro

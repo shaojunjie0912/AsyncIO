@@ -13,6 +13,3 @@ add_requires("fmt", "catch2")
 
 includes("CuteCoro")
 includes("tests")
--- includes("misc")
--- includes("task_without_scheduler")
--- includes("task_with_scheduler")

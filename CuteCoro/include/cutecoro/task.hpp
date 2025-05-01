@@ -27,7 +27,9 @@ struct Task;
 template <typename R = void>
 struct PromiseType : CoroHandle, Result<R> {
     using coro_handle = std::coroutine_handle<PromiseType>;
-    PromiseType() = default;
+
+    // NOTE: 捕获 source location
+    PromiseType(std::source_location loc = std::source_location::current()) : frame_info_(loc) {}
 
 public:
     // TODO: 后面理解一下为啥外部调用者要用 no_wait_at_initial_suspend 标记
@@ -97,8 +99,8 @@ public:
 
 public:
     bool const wait_at_initial_suspend_{true};  // 协程体刚开始时是否挂起(默认 true)
-    CoroHandle* continuation_{};                // 前一个协程句柄(在等待当前协程完成), 如何构造?
-    std::source_location frame_info_{};         // 帧信息 TODO: 给调用?
+    CoroHandle* continuation_{};       // TODO: 前一个协程句柄(在等待当前协程完成), 如何构造?
+    std::source_location frame_info_;  // 帧信息 TODO: 给调用?
 };
 
 template <typename R = void>
@@ -115,7 +117,7 @@ public:
 
     Task(Task&& other) noexcept : handle_(std::exchange(other.handle_, {})) {}
 
-    ~Task() { Destory(); }
+    ~Task() { Destroy(); }
 
 public:
     // NOTE: decltype 保留引用和 cv 限定符
@@ -184,7 +186,7 @@ public:
 
 private:
     // 销毁任务(取消调度 + 销毁句柄)
-    void Destory() {
+    void Destroy() {
         if (auto handle{std::exchange(handle_, nullptr)}) {
             handle.promise().Cancel();  // TODO: 调用 CoroHandle::Cancel
             handle.destroy();
