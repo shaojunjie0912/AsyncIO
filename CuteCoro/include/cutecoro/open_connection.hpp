@@ -3,7 +3,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include <exception>
 #include <system_error>
 //
 #include <cutecoro/finally.hpp>
@@ -15,15 +14,20 @@ namespace cutecoro {
 
 namespace detail {
 
-Task<bool> connect(int fd, const sockaddr *addr, socklen_t len) noexcept {
-    int rc = ::connect(fd, addr, len);
-    if (rc == 0) {
+// 异步连接一个给定的非阻塞 fd 到指定的地址 addr
+inline Task<bool> Connect(int fd, const sockaddr *addr, socklen_t len) noexcept {
+    int rc = ::connect(fd, addr, len);  // 非阻塞式 connect
+
+    if (rc == 0) {  // 连接成功
         co_return true;
     }
-    if (rc < 0 && errno != EINPROGRESS) {
-        throw std::system_error(std::make_error_code(static_cast<std::errc>(errno)));
+
+    if (rc < 0 && errno != EINPROGRESS) {  // 其他错误
+        throw std::system_error(errno, std::system_category());
     }
-    Event ev{.fd = fd, .flags = Event::Flags::EVENT_WRITE};
+
+    // rc == -1 且 errno == EINPROGRESS: 连接正在进行中
+    Event ev{.fd = fd, .flags = Event::Flags::EVENT_WRITE};  // 监听可写事件 (可写代表连接已建立)
     auto &loop = GetEventLoop();
     co_await loop.WaitEvent(ev);
 
@@ -33,12 +37,13 @@ Task<bool> connect(int fd, const sockaddr *addr, socklen_t len) noexcept {
         // error, fail somehow, close socket
         co_return false;
     }
+
     co_return result == 0;
 }
 
 }  // namespace detail
 
-Task<Stream> open_connection(std::string_view ip, uint16_t port) {
+inline Task<Stream> OpenConnection(std::string_view ip, uint16_t port) {
     addrinfo hints{.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
     addrinfo *server_info{nullptr};
     auto service = std::to_string(port);
@@ -54,8 +59,8 @@ Task<Stream> open_connection(std::string_view ip, uint16_t port) {
             -1) {
             continue;
         }
-        socket::set_blocking(sockfd, false);
-        if (co_await detail::connect(sockfd, p->ai_addr, p->ai_addrlen)) {
+        socket::SetBlocking(sockfd, false);  // 设置非阻塞
+        if (co_await detail::Connect(sockfd, p->ai_addr, p->ai_addrlen)) {
             break;
         }
         close(sockfd);

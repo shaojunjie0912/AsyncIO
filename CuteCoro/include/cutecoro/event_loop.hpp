@@ -73,14 +73,14 @@ public:
         }
 
         // 移除注册事件
-        void destroy() noexcept {
+        void Destroy() noexcept {
             if (registered_) {
                 selector_.RemoveEvent(event_);
                 registered_ = false;
             }
         }
 
-        ~WaitEventAwaiter() { destroy(); }
+        ~WaitEventAwaiter() { Destroy(); }
 
         Selector& selector_;
         Event event_{};
@@ -89,7 +89,7 @@ public:
 
     // 等待特定的 IO 事件
     [[nodiscard]]
-    auto WaitEvent(const Event& event) {
+    auto WaitEvent(Event const& event) {
         return WaitEventAwaiter{selector_, event};
     }
 
