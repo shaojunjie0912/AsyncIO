@@ -45,12 +45,12 @@ struct Server : NonCopyable {
             }
             connected.emplace_back(schedule_task(connect_cb_(Stream{clientfd, remoteaddr})));
             // garbage collect
-            clean_up_connected(connected);
+            CleanUpConnected(connected);
         }
     }
 
 private:
-    void clean_up_connected(std::list<ScheduledTask<Task<>>>& connected) {
+    void CleanUpConnected(std::list<ScheduledTask<Task<>>>& connected) {
         if (connected.size() < 100) [[likely]] {
             return;
         }

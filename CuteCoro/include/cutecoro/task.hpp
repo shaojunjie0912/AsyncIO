@@ -28,11 +28,12 @@ template <typename R = void>
 struct PromiseType : CoroHandle, Result<R> {
     using coro_handle = std::coroutine_handle<PromiseType>;
 
+public:
+    // 构造函数
     // NOTE: 捕获 source location
     PromiseType(std::source_location loc = std::source_location::current()) : frame_info_(loc) {}
 
-public:
-    // TODO: 后面理解一下为啥外部调用者要用 no_wait_at_initial_suspend 标记
+    // 构造函数 (参数: 不挂起)
     template <typename... Args>  // from free function
     PromiseType(NoWaitAtInitialSuspend, Args&&...) : wait_at_initial_suspend_{false} {}
 
@@ -41,13 +42,12 @@ public:
     PromiseType(Obj&&, NoWaitAtInitialSuspend, Args&&...) : wait_at_initial_suspend_{false} {}
 
 public:
-    // --------- 协程的 promise 要求 ----------
+    // --------- 协程 promise_type 要求 ----------
     auto get_return_object() noexcept { return Task<R>{coro_handle::from_promise(*this)}; }
 
+    // 协程刚开始执行时是否挂起
     auto initial_suspend() noexcept {
-        // TODO: 啊? 内部还能再定义 Awaiter?
-        // 没有简单的 if wait_at_initial_suspend_ 对应 suspend_always/never
-        // 更加灵活定制?
+        // auto 无法同时推断 std::suspend_always/never, 因此这里自定义 Awaiter
         struct InitialSuspendAwaiter {
             constexpr bool await_ready() const noexcept { return !wait_; }
 
@@ -55,7 +55,7 @@ public:
 
             constexpr void await_resume() const noexcept {}
 
-            const bool wait_{true};
+            bool wait_;  // 是否挂起 (由外部 wait_at_initial_suspend_ 初始化)
         };
         return InitialSuspendAwaiter{wait_at_initial_suspend_};
     }
@@ -64,12 +64,13 @@ public:
         // final_suspend 返回, 协程完成时始终挂起
         constexpr bool await_ready() const noexcept { return false; }
 
+        // 挂起前做以下操作
+        // NOTE: 所以 Hello() 能返回到 HelloWorld()
         template <typename Promise>
         constexpr void await_suspend(std::coroutine_handle<Promise> h) const noexcept {
-            // 当前协程执行完毕时, 如果存在等待的协程 cont, 就获取当前事件循环,
-            // 并调用其 CallSoon 方法, 这个方法会将等待协程的句柄 *cont 添加到事件循环的待执行队列
-            // ready_ 中 以便在事件循环的下一次迭代中恢复 (resume) 该等待协程的执行, 通过调用其
-            // Run() 方法
+            // 当前协程执行完毕, 如果存在等待的协程 cont, 则获取事件循环并调用 CallSoon()
+            // 将等待协程的句柄 *cont 添加到事件循环的待执行队列 ready_ 中
+            // 以便在事件循环的下一次迭代中通过调用句柄的 Run() 恢复 resume 该等待协程的执行
             if (auto cont = h.promise().continuation_) {
                 GetEventLoop().CallSoon(*cont);
             }
@@ -127,7 +128,10 @@ public:
     // 右值调用 GetResult
     decltype(auto) GetResult() && { return std::move(handle_.promise()).result(); }
 
+    // AwaiterBase 基类
     struct AwaiterBase {
+        coro_handle self_coro_{};  // 被 co_await 的协程句柄
+
         constexpr bool await_ready() {
             if (self_coro_) [[likely]] {
                 return self_coro_.done();  // 被 co_await 的协程是否已经完成
@@ -146,8 +150,6 @@ public:
             // 将被 co_await 的协程加入调度(立即执行)
             self_coro_.promise().Schedule();
         }
-
-        coro_handle self_coro_{};
     };
 
     // co_await 运算符重载(左值)
@@ -161,7 +163,7 @@ public:
                 return AwaiterBase::self_coro_.promise().result();
             }
         };
-        return Awaiter{handle_};  // 用被 co_await 的协程的句柄初始化
+        return Awaiter{handle_};  // HACK: 用被 co_await 的协程的句柄初始化
     }
 
     // co_await 运算符重载(右值)
