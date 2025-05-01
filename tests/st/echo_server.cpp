@@ -1,3 +1,5 @@
+#include <arpa/inet.h>
+
 #include <cutecoro/cutecoro.hpp>
 
 using namespace cutecoro;
@@ -11,23 +13,23 @@ Task<> handle_echo(Stream stream) {
     auto sa = reinterpret_cast<const sockaddr*>(&sockinfo);
 
     ++add_count;
-    // fmt::print("connections: {}/{}\n", rel_count, add_count);
+    fmt::print("connections: {}/{}\n", rel_count, add_count);
     while (true) {
         try {
             auto data = co_await stream.Read(200);
             if (data.empty()) {
                 break;
             }
-            // fmt::print("Received: '{}' from '{}:{}'\n", data.data(),
-            // inet_ntop(sockinfo.ss_family, get_in_addr(sa), addr, sizeof addr),
-            // get_in_port(sa));
+            fmt::print("Received: '{}' from '{}:{}'\n", data.data(),
+                       inet_ntop(sockinfo.ss_family, GetInAddr(sa), addr, sizeof addr),
+                       GetInPort(sa));
             co_await stream.Write(data);
         } catch (...) {
             break;
         }
     }
     ++rel_count;
-    // fmt::print("connections: {}/{}\n", rel_count, add_count);
+    fmt::print("connections: {}/{}\n", rel_count, add_count);
     stream.Close();
 }
 
