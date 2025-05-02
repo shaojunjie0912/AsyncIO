@@ -8,7 +8,7 @@ int add_count = 0;
 int rel_count = 0;
 
 Task<> handle_echo(Stream stream) {
-    auto sockinfo = stream.get_sock_info();
+    auto sockinfo = stream.GetSockInfo();
     char addr[INET6_ADDRSTRLEN]{};
     auto sa = reinterpret_cast<const sockaddr*>(&sockinfo);
 

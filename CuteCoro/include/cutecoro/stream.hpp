@@ -123,7 +123,7 @@ public:
         co_return;
     }
 
-    const sockaddr_storage& get_sock_info() const { return sock_info_; }
+    const sockaddr_storage& GetSockInfo() const { return sock_info_; }
 
 private:
     Task<Buffer> ReadUntilEof() {
@@ -134,7 +134,7 @@ private:
             co_await read_awaiter_;
             current_read = ::read(read_fd_, result.data() + total_read, chunk_size);
             if (current_read == -1) {
-                throw std::system_error(std::make_error_code(static_cast<std::errc>(errno)));
+                throw std::system_error(errno, std::system_category());
             }
             if (current_read < static_cast<int>(chunk_size)) {
                 result.resize(total_read + current_read);
@@ -152,22 +152,24 @@ private:
     Event write_event_{.fd = write_fd_, .flags = Event::EVENT_WRITE};
     EventLoop::WaitEventAwaiter read_awaiter_{GetEventLoop().WaitEvent(read_event_)};
     EventLoop::WaitEventAwaiter write_awaiter_{GetEventLoop().WaitEvent(write_event_)};
-    sockaddr_storage sock_info_{};
+    sockaddr_storage sock_info_{};  // 通用套接字地址结构, 兼容 IPv4&6
     constexpr static size_t chunk_size = 4096;
 };
 
 inline const void* GetInAddr(const sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         return &reinterpret_cast<const sockaddr_in*>(sa)->sin_addr;
+    } else {
+        return &reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr;
     }
-    return &reinterpret_cast<const sockaddr_in6*>(sa)->sin6_addr;
 }
 
 inline uint16_t GetInPort(const sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         return ntohs(reinterpret_cast<const sockaddr_in*>(sa)->sin_port);
+    } else {
+        return ntohs(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_port);
     }
-    return ntohs(reinterpret_cast<const sockaddr_in6*>(sa)->sin6_port);
 }
 
 }  // namespace cutecoro
