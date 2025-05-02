@@ -7,3 +7,5 @@ add_deps("cutecoro")
 -- ut: unit tests
 
 includes("st")
+includes("ut")
+includes("misc")

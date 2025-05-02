@@ -37,8 +37,13 @@ struct EpollSelector {
         }
     }
 
-    // 就是抽象的 poll 操作
-    std::vector<Event> Select(int timeout /* ms */) {
+    /**
+     * @brief 等待事件发生 (epoll_wait)
+     *
+     * @param timeout 超时等待时间, 单位: 毫秒
+     * @return std::vector<Event>
+     */
+    std::vector<Event> Select(int timeout) {
         // errno = 0;
         std::vector<epoll_event> events;
         events.resize(register_event_count_);

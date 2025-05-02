@@ -6,11 +6,11 @@
 namespace cutecoro {
 
 // Task 包装类
-template <concepts::Future Task>
+template <concepts::Future TaskType>
 struct ScheduledTask : NonCopyable {
     // 构造函数, 就是将 Task 加入调度
     template <concepts::Future Fut>
-    explicit ScheduledTask(Fut&& fut) : task_(std::forward<Fut>(fut)) {
+    explicit ScheduledTask(Fut&& task) : task_(std::forward<Fut>(task)) {
         if (task_.IsValid() && !task_.IsDone()) {
             task_.handle_.promise().Schedule();
         }
@@ -37,7 +37,7 @@ public:
     bool IsDone() const { return task_.IsDone(); }
 
 private:
-    Task task_;
+    TaskType task_;
 };
 
 // deduction guide 类模板参数推导指引

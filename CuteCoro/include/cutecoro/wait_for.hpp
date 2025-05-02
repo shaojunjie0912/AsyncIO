@@ -36,7 +36,7 @@ struct WaitForAwaiter : NonCopyable {
 
     // co_await expr 表达式的结果
     constexpr decltype(auto) await_resume() {
-        return std::move(result_).result();  // move 转右值, result() 调用移动
+        return std::move(result_).GetResult();  // move 转右值, GetResult() 调用移动
     }
 
 private:

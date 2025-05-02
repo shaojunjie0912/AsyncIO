@@ -123,10 +123,10 @@ public:
 public:
     // NOTE: decltype 保留引用和 cv 限定符
     // 左值调用 GetResult
-    decltype(auto) GetResult() & { return handle_.promise().result(); }
+    decltype(auto) GetResult() & { return handle_.promise().GetResult(); }
 
     // 右值调用 GetResult
-    decltype(auto) GetResult() && { return std::move(handle_.promise()).result(); }
+    decltype(auto) GetResult() && { return std::move(handle_.promise()).GetResult(); }
 
     // AwaiterBase 基类
     struct AwaiterBase {
@@ -160,20 +160,20 @@ public:
                     throw InvalidFuture{};
                 }
                 // 被 co_await 的协程执行结束后, 返回自己的结果
-                return AwaiterBase::self_coro_.promise().result();
+                return AwaiterBase::self_coro_.promise().GetResult();
             }
         };
         return Awaiter{handle_};  // HACK: 用被 co_await 的协程的句柄初始化
     }
 
-    // co_await 运算符重载(右值)
+    // co_await 运算符重载(右值) 移动 result
     auto operator co_await() const&& noexcept {
         struct Awaiter : AwaiterBase {
             decltype(auto) await_resume() const {
                 if (!AwaiterBase::self_coro_) [[unlikely]] {
                     throw InvalidFuture{};
                 }
-                return std::move(AwaiterBase::self_coro_.promise()).result();
+                return std::move(AwaiterBase::self_coro_.promise()).GetResult();
             }
         };
         return Awaiter{handle_};

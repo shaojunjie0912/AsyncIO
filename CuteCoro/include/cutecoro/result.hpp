@@ -16,7 +16,7 @@ struct Result {
     }
 
     // 设置 Result 值
-    template <typename R>  // NOTE: 加了一个模板参数 R, 这样 R -> T
+    template <typename R>  // NOTE: 加了一个模板参数 R, 这样 R 可转为 T
     constexpr void SetValue(R&& value) noexcept {
         result_.template emplace<T>(std::forward<R>(value));
     }
@@ -24,8 +24,8 @@ struct Result {
     // 设置 result_ 异常
     void SetException(std::exception_ptr exception) noexcept { result_ = exception; }
 
-    // 左值对象调用 result() 会拷贝 result_<T> 的值
-    constexpr T result() & {
+    // 左值对象调用 GetResult() 会拷贝 result_<T> 的值
+    constexpr T GetResult() & {
         if (auto exception = std::get_if<std::exception_ptr>(&result_)) {
             std::rethrow_exception(*exception);
         }
@@ -35,8 +35,8 @@ struct Result {
         throw NoResultError{};
     }
 
-    // 右值对象调用 result() 会移动 result_<T> 的值
-    constexpr T result() && {
+    // 右值对象调用 GetResult() 会移动 result_<T> 的值
+    constexpr T GetResult() && {
         if (auto exception = std::get_if<std::exception_ptr>(&result_)) {
             std::rethrow_exception(*exception);
         }
@@ -65,7 +65,7 @@ template <>
 struct Result<void> {
     constexpr bool HasValue() const noexcept { return result_.has_value(); }
 
-    void result() {
+    void GetResult() {
         if (result_.has_value() && *result_ != nullptr) {
             std::rethrow_exception(*result_);
         }
