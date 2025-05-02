@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cutecoro/concepts/future.hpp>
-#include <cutecoro/noncopyable.hpp>
+#include <cutecoro/detail/concepts/future.hpp>
+#include <cutecoro/detail/noncopyable.hpp>
 
 namespace cutecoro {
 

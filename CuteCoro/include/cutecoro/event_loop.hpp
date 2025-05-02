@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <chrono>
 #include <coroutine>
+#include <cutecoro/detail/noncopyable.hpp>
+#include <cutecoro/detail/selector/selector.hpp>
 #include <cutecoro/handle.hpp>
-#include <cutecoro/noncopyable.hpp>
-#include <cutecoro/selector/selector.hpp>
 #include <queue>
 #include <unordered_set>
 
@@ -46,6 +46,7 @@ public:
         ready_.push({handle.GetHandleId(), &handle});
     }
 
+    //
     struct WaitEventAwaiter {
         bool await_ready() noexcept {
             // 指针自引用检测技巧, 哨兵值技术, 标记特殊状态(没有对应回调, 协程继续执行, 不需要挂起)
@@ -87,7 +88,7 @@ public:
         bool registered_{false};
     };
 
-    // 等待特定的 IO 事件
+    // 等待特定的 IO 事件 (返回 WaitEventAwaiter)
     [[nodiscard]]
     auto WaitEvent(Event const& event) {
         return WaitEventAwaiter{selector_, event};

@@ -10,10 +10,10 @@
 #include <tuple>
 #include <variant>
 // cutecoro
-#include <cutecoro/concepts/awaitable.hpp>
-#include <cutecoro/noncopyable.hpp>
+#include <cutecoro/detail/concepts/awaitable.hpp>
+#include <cutecoro/detail/noncopyable.hpp>
+#include <cutecoro/detail/void_value.hpp>
 #include <cutecoro/task.hpp>
-#include <cutecoro/void_value.hpp>
 
 namespace cutecoro {
 

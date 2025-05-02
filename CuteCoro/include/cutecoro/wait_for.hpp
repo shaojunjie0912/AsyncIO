@@ -3,9 +3,9 @@
 // std
 #include <chrono>
 // cutecoro
+#include <cutecoro/detail/noncopyable.hpp>
 #include <cutecoro/event_loop.hpp>
 #include <cutecoro/handle.hpp>
-#include <cutecoro/noncopyable.hpp>
 #include <cutecoro/result.hpp>
 #include <cutecoro/scheduled_task.hpp>
 #include <cutecoro/task.hpp>

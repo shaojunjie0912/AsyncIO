@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cutecoro/selector/epoll_selector.hpp>
+#include <cutecoro/detail/selector/epoll_selector.hpp>
 
 namespace cutecoro {
 

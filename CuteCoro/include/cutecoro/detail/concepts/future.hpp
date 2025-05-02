@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cutecoro/concepts/awaitable.hpp>
+#include <cutecoro/detail/concepts/awaitable.hpp>
 #include <cutecoro/handle.hpp>
 
 namespace cutecoro {

@@ -4,7 +4,7 @@ using namespace cutecoro;
 using namespace std::chrono_literals;
 
 Task<> tcp_echo_client(std::string_view message) {
-    auto stream = co_await OpenConnection("127.0.0.1", 8888);
+    auto stream = co_await OpenConnection("127.0.0.1", 9012);
 
     fmt::print("Send: '{}'\n", message);
     co_await stream.Write(Stream::Buffer(message.begin(), message.end() + 1 /* plus '\0' */));

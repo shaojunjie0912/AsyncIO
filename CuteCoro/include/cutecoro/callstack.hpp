@@ -1,7 +1,7 @@
 #pragma once
 
 #include <coroutine>
-#include <cutecoro/noncopyable.hpp>
+#include <cutecoro/detail/noncopyable.hpp>
 
 namespace cutecoro {
 

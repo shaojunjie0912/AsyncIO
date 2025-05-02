@@ -7,7 +7,7 @@
 #include <source_location>
 #include <utility>
 //
-#include <cutecoro/concepts/promise.hpp>
+#include <cutecoro/detail/concepts/promise.hpp>
 #include <cutecoro/event_loop.hpp>
 #include <cutecoro/handle.hpp>
 #include <cutecoro/result.hpp>

@@ -13,8 +13,8 @@ using Flags_t = uint32_t;
 struct Event {
     enum Flags : Flags_t {
         EVENT_NONE = 0,          // 空事件
-        EVENT_READ = EPOLLIN,    // 读事件
-        EVENT_WRITE = EPOLLOUT,  // 写事件
+        EVENT_READ = EPOLLIN,    // 读就绪事件
+        EVENT_WRITE = EPOLLOUT,  // 写就绪事件
     };
 
     int fd{-1};                // 文件描述符

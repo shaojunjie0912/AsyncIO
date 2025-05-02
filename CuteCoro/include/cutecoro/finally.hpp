@@ -32,12 +32,12 @@ private:
 
 // 重载为了 lambda 正确推导 const
 template <class F>
-inline FinalAction<F> _finally(const F &f) noexcept {
+FinalAction<F> _finally(const F &f) noexcept {
     return FinalAction<F>(f);
 }
 
 template <class F>
-inline FinalAction<F> _finally(F &&f) noexcept {
+FinalAction<F> _finally(F &&f) noexcept {
     return FinalAction<F>(std::forward<F>(f));
 }
 

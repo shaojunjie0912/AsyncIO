@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cutecoro/concepts/future.hpp>
+#include <cutecoro/detail/concepts/future.hpp>
 #include <cutecoro/event_loop.hpp>
 #include <cutecoro/scheduled_task.hpp>
 

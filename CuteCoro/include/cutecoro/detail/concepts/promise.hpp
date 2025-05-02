@@ -3,8 +3,8 @@
 #include <coroutine>
 #include <utility>
 //
-#include <cutecoro/concepts/awaitable.hpp>
-#include <cutecoro/concepts/future.hpp>
+#include <cutecoro/detail/concepts/awaitable.hpp>
+#include <cutecoro/detail/concepts/future.hpp>
 
 namespace cutecoro {
 

@@ -3,7 +3,7 @@
 #include <fmt/core.h>
 #include <unistd.h>
 
-#include <cutecoro/selector/event.hpp>
+#include <cutecoro/detail/selector/event.hpp>
 #include <vector>
 
 namespace cutecoro {
