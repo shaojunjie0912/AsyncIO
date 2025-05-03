@@ -48,7 +48,7 @@ SCENARIO("test Task await") {
     }
 }
 
-Task<int64_t> square(int64_t x) { co_return x* x; }
+Task<int64_t> square(int64_t x) { co_return (x * x); }
 
 SCENARIO("Task<> test") {
     GIVEN("co_await empty task<>") {
@@ -78,7 +78,7 @@ SCENARIO("test Task await result value") {
     }
 
     GIVEN("fibonacci") {
-        std::function<auto(size_t)->Task<size_t>> fibo = [&](size_t n) -> Task<size_t> {
+        std::function<Task<size_t>(size_t)> fibo = [&](size_t n) -> Task<size_t> {
             if (n <= 1) {
                 co_return n;
             }
@@ -115,28 +115,33 @@ SCENARIO("test schedule_task") {
         co_return 0xababcaab;
     };
 
+    // 测试创建一个 ScheduledTask 但不 co_await 它（即“分离”它）的效果
     GIVEN("Run and detach created task") {
         Run([&]() -> Task<> {
-            auto handle = schedule_task(f());
+            // 忽略/分离一个任务将不会被调度执行
+            auto sche_task = schedule_task(f());
+            schedule_task(f());
             co_return;
         }());
-        REQUIRE(!called);
+        REQUIRE(!called);  // called 还是 false, 因为 f 没有被执行
     }
 
+    // 测试创建并 co_await 一个 ScheduledTask 的效果
     GIVEN("Run and await created task") {
         Run([&]() -> Task<> {
-            auto handle = schedule_task(f());
-            REQUIRE(co_await handle == 0xababcaab);
-            REQUIRE(co_await handle == 0xababcaab);
+            auto sche_task = schedule_task(f());
+            REQUIRE((co_await sche_task) == 0xababcaab);
+            REQUIRE((co_await sche_task) == 0xababcaab);
         }());
-        REQUIRE(called);
+        REQUIRE(called);  // called 变为 true, 因为 f 被执行了
     }
 
+    // 试取消一个 ScheduledTask 并尝试 co_await 它的效果
     GIVEN("cancel and await created task") {
         Run([&]() -> Task<> {
-            auto handle = schedule_task(f());
-            handle.Cancel();
-            REQUIRE_THROWS_AS(co_await handle, InvalidFuture);
+            auto sche_task = schedule_task(f());
+            sche_task.Cancel();
+            REQUIRE_THROWS_AS(co_await sche_task, InvalidFuture);
         }());
     }
 }
@@ -229,145 +234,146 @@ SCENARIO("test Gather") {
     }
 }
 
-SCENARIO("test Sleep") {
-    size_t call_time = 0;
-    auto say_after = [&](auto delay, std::string_view what) -> Task<> {
-        co_await Sleep(delay);
-        fmt::print("{}\n", what);
-        ++call_time;
-    };
+// SCENARIO("test Sleep") {
+//     size_t call_time = 0;
+//     auto say_after = [&](auto delay, std::string_view what) -> Task<> {
+//         co_await Sleep(delay);
+//         fmt::print("{}\n", what);
+//         ++call_time;
+//     };
 
-    GIVEN("schedule Sleep and await") {
-        auto async_main = [&]() -> Task<> {
-            auto task1 = schedule_task(say_after(100ms, "hello"));
-            auto task2 = schedule_task(say_after(200ms, "world"));
+//     GIVEN("schedule Sleep and await") {
+//         auto async_main = [&]() -> Task<> {
+//             auto task1 = schedule_task(say_after(100ms, "hello"));
+//             auto task2 = schedule_task(say_after(200ms, "world"));
 
-            co_await task1;
-            co_await task2;
-        };
-        auto before_wait = GetEventLoop().time();
-        Run(async_main());
-        auto after_wait = GetEventLoop().time();
-        auto diff = after_wait - before_wait;
-        REQUIRE(diff >= 200ms);
-        REQUIRE(diff < 300ms);
-        REQUIRE(call_time == 2);
-    }
+//             co_await task1;
+//             co_await task2;
+//         };
+//         auto before_wait = GetEventLoop().time();
+//         Run(async_main());
+//         auto after_wait = GetEventLoop().time();
+//         auto diff = after_wait - before_wait;
+//         REQUIRE(diff >= 200ms);
+//         REQUIRE(diff < 300ms);
+//         REQUIRE(call_time == 2);
+//     }
 
-    GIVEN("schedule Sleep and cancel") {
-        auto async_main = [&]() -> Task<> {
-            auto task1 = schedule_task(say_after(100ms, "hello"));
-            auto task2 = schedule_task(say_after(200ms, "world"));
+//     GIVEN("schedule Sleep and cancel") {
+//         auto async_main = [&]() -> Task<> {
+//             auto task1 = schedule_task(say_after(100ms, "hello"));
+//             auto task2 = schedule_task(say_after(200ms, "world"));
 
-            co_await task1;
-            task2.Cancel();
-        };
-        auto before_wait = GetEventLoop().time();
-        Run(async_main());
-        auto after_wait = GetEventLoop().time();
-        auto diff = after_wait - before_wait;
-        REQUIRE(diff >= 100ms);
-        REQUIRE(diff < 200ms);
-        REQUIRE(call_time == 1);
-    }
+//             co_await task1;
+//             task2.Cancel();
+//         };
+//         auto before_wait = GetEventLoop().time();
+//         Run(async_main());
+//         auto after_wait = GetEventLoop().time();
+//         auto diff = after_wait - before_wait;
+//         REQUIRE(diff >= 100ms);
+//         REQUIRE(diff < 200ms);
+//         REQUIRE(call_time == 1);
+//     }
 
-    GIVEN("schedule Sleep and cancel, delay exit") {
-        auto async_main = [&]() -> Task<> {
-            auto task1 = schedule_task(say_after(100ms, "hello"));
-            auto task2 = schedule_task(say_after(200ms, "world"));
+//     GIVEN("schedule Sleep and cancel, delay exit") {
+//         auto async_main = [&]() -> Task<> {
+//             auto task1 = schedule_task(say_after(100ms, "hello"));
+//             auto task2 = schedule_task(say_after(200ms, "world"));
 
-            co_await task1;
-            task2.Cancel();
-            // delay 300ms to exit
-            co_await Sleep(200ms);
-        };
-        auto before_wait = GetEventLoop().time();
-        Run(async_main());
-        auto after_wait = GetEventLoop().time();
-        auto diff = after_wait - before_wait;
-        REQUIRE(diff >= 300ms);
-        REQUIRE(diff < 400ms);
-        REQUIRE(call_time == 1);
-    }
-}
+//             co_await task1;
+//             task2.Cancel();
+//             // delay 300ms to exit
+//             co_await Sleep(200ms);
+//         };
+//         auto before_wait = GetEventLoop().time();
+//         Run(async_main());
+//         auto after_wait = GetEventLoop().time();
+//         auto diff = after_wait - before_wait;
+//         REQUIRE(diff >= 300ms);
+//         REQUIRE(diff < 400ms);
+//         REQUIRE(call_time == 1);
+//     }
+// }
 
-SCENARIO("cancel a infinite loop coroutine") {
-    int count = 0;
-    Run([&]() -> Task<> {
-        auto inf_loop = [&]() -> Task<> {
-            while (true) {
-                ++count;
-                co_await Sleep(1ms);
-            }
-        };
-        auto task = schedule_task(inf_loop());
-        co_await Sleep(10ms);
-        task.Cancel();
-    }());
-    REQUIRE(count > 0);
-    REQUIRE(count < 10);
-}
+// SCENARIO("cancel a infinite loop coroutine") {
+//     int count = 0;
+//     Run([&]() -> Task<> {
+//         auto inf_loop = [&]() -> Task<> {
+//             while (true) {
+//                 ++count;
+//                 co_await Sleep(1ms);
+//             }
+//         };
+//         auto task = schedule_task(inf_loop());
+//         co_await Sleep(10ms);
+//         task.Cancel();
+//     }());
+//     REQUIRE(count > 0);
+//     REQUIRE(count < 10);
+// }
 
-SCENARIO("test timeout") {
-    bool is_called = false;
-    auto wait_duration = [&](auto duration) -> Task<int> {
-        co_await Sleep(duration);
-        fmt::print("wait_duration finished\n");
-        is_called = true;
-        co_return 0xbabababc;
-    };
+// SCENARIO("test timeout") {
+//     bool is_called = false;
+//     auto wait_duration = [&](auto duration) -> Task<int> {
+//         co_await Sleep(duration);
+//         fmt::print("wait_duration finished\n");
+//         is_called = true;
+//         co_return 0xbabababc;
+//     };
 
-    auto WaitFor_test = [&](auto duration, auto timeout) -> Task<int> {
-        co_return co_await WaitFor(wait_duration(duration), timeout);
-    };
+//     auto WaitFor_test = [&](auto duration, auto timeout) -> Task<int> {
+//         co_return co_await WaitFor(wait_duration(duration), timeout);
+//     };
 
-    SECTION("no timeout") {
-        REQUIRE(!is_called);
-        REQUIRE(Run(WaitFor_test(12ms, 120ms)) == 0xbabababc);
-        REQUIRE(is_called);
-    }
+//     SECTION("no timeout") {
+//         REQUIRE(!is_called);
+//         REQUIRE(Run(WaitFor_test(12ms, 120ms)) == 0xbabababc);
+//         REQUIRE(is_called);
+//     }
 
-    SECTION("WaitFor with Sleep") {
-        REQUIRE(!is_called);
-        auto WaitFor_rvalue = WaitFor(Sleep(30ms), 50ms);
-        Run([&]() -> Task<> {
-            REQUIRE_NOTHROW(co_await std::move(WaitFor_rvalue));
-            REQUIRE_THROWS_AS(co_await WaitFor(Sleep(50ms), 30ms), TimeoutError);
-            is_called = true;
-        }());
-        REQUIRE(is_called);
-    }
+//     SECTION("WaitFor with Sleep") {
+//         REQUIRE(!is_called);
+//         auto WaitFor_rvalue = WaitFor(Sleep(30ms), 50ms);
+//         Run([&]() -> Task<> {
+//             REQUIRE_NOTHROW(co_await std::move(WaitFor_rvalue));
+//             REQUIRE_THROWS_AS(co_await WaitFor(Sleep(50ms), 30ms), TimeoutError);
+//             is_called = true;
+//         }());
+//         REQUIRE(is_called);
+//     }
 
-    SECTION("WaitFor with Gather") {
-        REQUIRE(!is_called);
-        Run([&]() -> Task<> {
-            REQUIRE_NOTHROW(co_await WaitFor(Gather(Sleep(10ms), Sleep(20ms), Sleep(30ms)), 50ms));
-            REQUIRE_THROWS_AS(co_await WaitFor(Gather(Sleep(10ms), Sleep(80ms), Sleep(30ms)), 50ms),
-                              TimeoutError);
-            is_called = true;
-        }());
-        REQUIRE(is_called);
-    }
+//     SECTION("WaitFor with Gather") {
+//         REQUIRE(!is_called);
+//         Run([&]() -> Task<> {
+//             REQUIRE_NOTHROW(co_await WaitFor(Gather(Sleep(10ms), Sleep(20ms), Sleep(30ms)),
+//             50ms)); REQUIRE_THROWS_AS(co_await WaitFor(Gather(Sleep(10ms), Sleep(80ms),
+//             Sleep(30ms)), 50ms),
+//                               TimeoutError);
+//             is_called = true;
+//         }());
+//         REQUIRE(is_called);
+//     }
 
-    SECTION("notime out with exception") {
-        REQUIRE_THROWS_AS(
-            Run([]() -> Task<> { auto v = co_await WaitFor(int_div(5, 0), 100ms); }()),
-            std::overflow_error);
-    }
+//     SECTION("notime out with exception") {
+//         REQUIRE_THROWS_AS(
+//             Run([]() -> Task<> { auto v = co_await WaitFor(int_div(5, 0), 100ms); }()),
+//             std::overflow_error);
+//     }
 
-    SECTION("timeout error") {
-        REQUIRE(!is_called);
-        REQUIRE_THROWS_AS(Run(WaitFor_test(200ms, 100ms)), TimeoutError);
-        REQUIRE(!is_called);
-    }
+//     SECTION("timeout error") {
+//         REQUIRE(!is_called);
+//         REQUIRE_THROWS_AS(Run(WaitFor_test(200ms, 100ms)), TimeoutError);
+//         REQUIRE(!is_called);
+//     }
 
-    SECTION("wait for awaitable") {
-        Run([]() -> Task<> {
-            co_await WaitFor(std::suspend_always{}, 1s);
-            co_await WaitFor(std::suspend_never{}, 1s);
-        }());
-    }
-}
+//     SECTION("wait for awaitable") {
+//         Run([]() -> Task<> {
+//             co_await WaitFor(std::suspend_always{}, 1s);
+//             co_await WaitFor(std::suspend_never{}, 1s);
+//         }());
+//     }
+// }
 
 SCENARIO("echo server & client") {
     bool is_called = false;

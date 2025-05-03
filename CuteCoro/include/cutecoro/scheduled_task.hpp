@@ -45,7 +45,7 @@ template <concepts::Future Fut>
 ScheduledTask(Fut&&) -> ScheduledTask<Fut>;
 
 template <concepts::Future Fut>
-[[nodiscard("discard(detached) a task will not Schedule to Run")]]
+[[nodiscard("忽略 (分离) 一个任务将不会被调度执行")]]
 ScheduledTask<Fut> schedule_task(Fut&& fut) {
     return ScheduledTask{std::forward<Fut>(fut)};  // 有了推导指引, 这里的 CTAD 才能成功
 }

@@ -116,6 +116,7 @@ struct Task : NonCopyable {
 public:
     explicit Task(coro_handle h) noexcept : handle_(h) {}
 
+    // 移动构造函数: 移动协程句柄
     Task(Task&& other) noexcept : handle_(std::exchange(other.handle_, {})) {}
 
     ~Task() { Destroy(); }
@@ -136,6 +137,8 @@ public:
             if (self_coro_) [[likely]] {
                 return self_coro_.done();  // 被 co_await 的协程是否已经完成
             }
+            // 如果协程句柄无效, 则 true: 不挂起
+            // 继续执行到 await_resume 即 co_await 返回, 其中会抛出异常
             return true;
         }
 
@@ -157,6 +160,7 @@ public:
         struct Awaiter : AwaiterBase {
             decltype(auto) await_resume() const {
                 if (!AwaiterBase::self_coro_) [[unlikely]] {
+                    // 如果协程句柄无效, 则抛出异常
                     throw InvalidFuture{};
                 }
                 // 被 co_await 的协程执行结束后, 返回自己的结果
@@ -171,6 +175,7 @@ public:
         struct Awaiter : AwaiterBase {
             decltype(auto) await_resume() const {
                 if (!AwaiterBase::self_coro_) [[unlikely]] {
+                    // 如果协程句柄无效, 则抛出异常
                     throw InvalidFuture{};
                 }
                 return std::move(AwaiterBase::self_coro_.promise()).GetResult();
