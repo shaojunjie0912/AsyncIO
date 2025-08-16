@@ -3,10 +3,10 @@
 #include <fmt/core.h>
 
 #include <chrono>
-#include <cutecoro/cutecoro.hpp>
+#include <asyncio/asyncio.hpp>
 #include <thread>
 
-using cutecoro::Task;
+using asyncio::Task;
 
 using namespace std::chrono_literals;
 
@@ -35,6 +35,6 @@ int main() {
     // NOTE: 协程创建时默认挂起
     // 被 co_await 的协程在 await_suspend 中调用了 Schedule
     // 而这里的 HelloWorld 是在 Run 中的 ScheduledTask 的构造函数中被 Schedule 的
-    fmt::print("Run result: {}\n", cutecoro::Run(HelloWorld()));
+    fmt::print("Run result: {}\n", asyncio::Run(HelloWorld()));
     return 0;
 }

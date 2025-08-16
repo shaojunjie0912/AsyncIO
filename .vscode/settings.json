@@ -1,7 +1,0 @@
-{
-  "C_Cpp.intelliSenseEngine": "disabled",
-  "clangd.arguments": [
-    "--header-insertion=never"
-  ],
-  "xmake.debugConfigType": "codelldb",
-}

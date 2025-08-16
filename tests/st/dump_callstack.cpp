@@ -1,6 +1,6 @@
-#include <cutecoro/cutecoro.hpp>
+#include <asyncio/asyncio.hpp>
 
-using namespace cutecoro;
+using namespace asyncio;
 
 Task<int> factorial(int n) {
     if (n <= 1) {

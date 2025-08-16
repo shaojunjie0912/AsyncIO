@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
-#include <cutecoro/event_loop.hpp>
+#include <asyncio/event_loop.hpp>
 
-using namespace cutecoro;
+using namespace asyncio;
 using namespace std::chrono_literals;
 
 SCENARIO("test selector") {

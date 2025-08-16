@@ -1,6 +1,6 @@
-#include <cutecoro/cutecoro.hpp>
+#include <asyncio/asyncio.hpp>
 
-using namespace cutecoro;
+using namespace asyncio;
 using namespace std::chrono_literals;
 
 Task<> tcp_echo_client(std::string_view message) {

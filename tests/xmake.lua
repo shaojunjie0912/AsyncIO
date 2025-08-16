@@ -1,6 +1,6 @@
 add_packages("catch2")
 
-add_deps("cutecoro")
+add_deps("asyncio")
 
 -- pt: performance tests
 -- st: sample tests

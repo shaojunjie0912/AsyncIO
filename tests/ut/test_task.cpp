@@ -1,9 +1,9 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <cutecoro/cutecoro.hpp>
+#include <asyncio/asyncio.hpp>
 #include <functional>
 
-using namespace cutecoro;
+using namespace asyncio;
 using namespace std::chrono_literals;
 
 template <size_t N>

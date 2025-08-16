@@ -1,9 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
-#include <cutecoro/cutecoro.hpp>
+#include <asyncio/asyncio.hpp>
 
 #include "counted.hpp"
 
-using namespace cutecoro;
+using namespace asyncio;
 
 // 编译期调试类型 (clang)
 // template <typename, typename...>

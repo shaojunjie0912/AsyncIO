@@ -1,4 +1,4 @@
-# CuteCoro
+# AsyncIO
 
 一个基于 C++20 协程的高性能异步编程库，提供简洁易用的协程任务调度、网络 I/O 和并发控制功能。
 
@@ -18,7 +18,7 @@
 ## 🏗️ 架构概览
 
 ```
-CuteCoro 架构
+AsyncIO 架构
 ├── Task<T>              # 协程任务封装，支持返回值类型
 ├── EventLoop            # 事件循环和调度器 (单例模式)
 │   ├── EpollSelector   # Linux epoll I/O 多路复用
@@ -42,8 +42,8 @@ CuteCoro 架构
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-repo/CuteCoro.git
-cd CuteCoro
+git clone https://github.com/your-repo/AsyncIO.git
+cd AsyncIO
 
 # 安装依赖
 xmake require
@@ -58,30 +58,30 @@ xmake run hello_world
 ### Hello World 示例
 
 ```cpp
-#include <cutecoro/cutecoro.hpp>
+#include <asyncio/asyncio.hpp>
 #include <fmt/core.h>
 
-using cutecoro::Task;
+using asyncio::Task;
 using namespace std::chrono_literals;
 
 Task<std::string> hello() {
-    co_await cutecoro::Sleep(1s);  // 异步等待 1 秒
+    co_await asyncio::Sleep(1s);  // 异步等待 1 秒
     co_return "Hello";
 }
 
 Task<std::string> world() {
-    co_await cutecoro::Sleep(1s);  // 异步等待 1 秒
+    co_await asyncio::Sleep(1s);  // 异步等待 1 秒
     co_return "World";
 }
 
 Task<> main_coro() {
     // 并发执行两个任务 (总耗时约 1 秒而非 2 秒)
-    auto [h, w] = co_await cutecoro::Gather(hello(), world());
+    auto [h, w] = co_await asyncio::Gather(hello(), world());
     fmt::println("{} {}!", h, w);
 }
 
 int main() {
-    cutecoro::Run(main_coro());  // 运行协程直到完成
+    asyncio::Run(main_coro());  // 运行协程直到完成
     return 0;
 }
 ```
@@ -102,7 +102,7 @@ Task<> process() {
 }
 
 // 运行任务
-int result = cutecoro::Run(compute());
+int result = asyncio::Run(compute());
 
 // 检查任务状态
 Task<int> task = compute();
@@ -125,7 +125,7 @@ Task<int> traced_function() {
 
 // 支持立即执行 (不挂起)
 Task<int> immediate_task() {
-    co_return cutecoro::no_wait_at_initial_suspend, 42;
+    co_return asyncio::no_wait_at_initial_suspend, 42;
 }
 ```
 
@@ -135,9 +135,9 @@ Task<int> immediate_task() {
 using namespace std::chrono_literals;
 
 Task<> delayed_task() {
-    co_await cutecoro::Sleep(100ms);   // 毫秒
-    co_await cutecoro::Sleep(1s);      // 秒
-    co_await cutecoro::Sleep(1min);    // 分钟
+    co_await asyncio::Sleep(100ms);   // 毫秒
+    co_await asyncio::Sleep(1s);      // 秒
+    co_await asyncio::Sleep(1min);    // 分钟
     fmt::println("任务完成");
 }
 ```
@@ -147,7 +147,7 @@ Task<> delayed_task() {
 ```cpp
 Task<> concurrent_tasks() {
     // 并发执行多个任务
-    auto [result1, result2, result3] = co_await cutecoro::Gather(
+    auto [result1, result2, result3] = co_await asyncio::Gather(
         task1(),     // Task<std::string>
         task2(),     // Task<int>
         task3()      // Task<>
@@ -155,7 +155,7 @@ Task<> concurrent_tasks() {
     
     // result1: std::string
     // result2: int  
-    // result3: cutecoro::detail::VoidValue (void 的占位符)
+    // result3: asyncio::detail::VoidValue (void 的占位符)
     
     // 处理结果...
 }
@@ -163,7 +163,7 @@ Task<> concurrent_tasks() {
 // 异常处理：任一任务失败将终止所有任务
 Task<> error_handling() {
     try {
-        auto results = co_await cutecoro::Gather(
+        auto results = co_await asyncio::Gather(
             might_fail_task(),
             normal_task()
         );
@@ -181,9 +181,9 @@ Task<> timeout_example() {
     
     try {
         // 最多等待 5 秒
-        auto result = co_await cutecoro::WaitFor(slow_task(), 5s);
+        auto result = co_await asyncio::WaitFor(slow_task(), 5s);
         fmt::println("任务完成: {}", result);
-    } catch (const cutecoro::TimeoutError&) {
+    } catch (const asyncio::TimeoutError&) {
         fmt::println("任务超时!");
     }
 }
@@ -201,7 +201,7 @@ Task<> wait_for_implementation() {
 
 ```cpp
 // Result 支持值和异常的统一处理
-cutecoro::Result<int> result;
+asyncio::Result<int> result;
 
 // 设置值
 result.SetValue(42);
@@ -224,9 +224,9 @@ if (result.HasValue()) {
 ### TCP 服务器
 
 ```cpp
-#include <cutecoro/cutecoro.hpp>
+#include <asyncio/asyncio.hpp>
 
-using namespace cutecoro;
+using namespace asyncio;
 
 // 客户端连接处理器
 Task<> handle_client(Stream stream) {
@@ -303,7 +303,7 @@ Task<> tcp_client() {
         stream.Close();
         fmt::println("连接已关闭");
         
-    } catch (const cutecoro::TimeoutError&) {
+    } catch (const asyncio::TimeoutError&) {
         fmt::println("操作超时");
     } catch (const std::exception& e) {
         fmt::println("客户端错误: {}", e.what());
@@ -368,11 +368,11 @@ Task<int> factorial(int n) {
 Task<> comprehensive_error_handling() {
     try {
         co_await risky_operation();
-    } catch (const cutecoro::TimeoutError& e) {
+    } catch (const asyncio::TimeoutError& e) {
         fmt::println("操作超时: {}", e.what());
-    } catch (const cutecoro::InvalidFuture& e) {
+    } catch (const asyncio::InvalidFuture& e) {
         fmt::println("无效的 Future: {}", e.what());
-    } catch (const cutecoro::NoResultError& e) {
+    } catch (const asyncio::NoResultError& e) {
         fmt::println("结果未设置: {}", e.what());
     } catch (const std::system_error& e) {
         fmt::println("系统错误: {} ({})", e.what(), e.code().value());
@@ -385,7 +385,7 @@ Task<> comprehensive_error_handling() {
 ### 资源管理 (Finally)
 
 ```cpp
-#include <cutecoro/finally.hpp>
+#include <asyncio/finally.hpp>
 
 Task<> resource_management_example() {
     int fd = open("file.txt", O_RDONLY);
@@ -415,13 +415,13 @@ Task<> resource_management_example() {
 
 ```cpp
 Task<> event_loop_control() {
-    auto& loop = cutecoro::GetEventLoop();
+    auto& loop = asyncio::GetEventLoop();
     
     // 获取当前时间 (相对于事件循环启动时间)
     auto current_time = loop.time();
     
     // 延迟调度任务
-    cutecoro::Handle custom_handle;
+    asyncio::Handle custom_handle;
     loop.CallLater(std::chrono::seconds(5), custom_handle);
     
     // 立即调度任务
@@ -460,10 +460,10 @@ Task<> use_custom_awaiter() {
 ## 🏗️ 项目结构详解
 
 ```
-CuteCoro/
-├── CuteCoro/                    # 核心库
-│   ├── include/cutecoro/        # 公共头文件目录
-│   │   ├── cutecoro.hpp        # 主头文件 (包含所有功能)
+AsyncIO/
+├── AsyncIO/                    # 核心库
+│   ├── include/asyncio/        # 公共头文件目录
+│   │   ├── asyncio.hpp        # 主头文件 (包含所有功能)
 │   │   ├── task.hpp            # Task 和 PromiseType 实现
 │   │   ├── event_loop.hpp      # 事件循环和调度器
 │   │   ├── stream.hpp          # 异步网络流实现
@@ -756,7 +756,7 @@ FinalAction<F> _finally(F&& f) noexcept;
 ### 异常类型
 
 ```cpp
-namespace cutecoro {
+namespace asyncio {
     // 操作超时异常
     struct TimeoutError : std::exception {
         const char* what() const noexcept override;
@@ -777,7 +777,7 @@ namespace cutecoro {
 ### C++20 概念约束
 
 ```cpp
-namespace cutecoro::concepts {
+namespace asyncio::concepts {
     // 可等待对象概念
     template<typename A>
     concept Awaitable = /* ... */;
